@@ -3,7 +3,7 @@
 # - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
 # - menos de 15 anos -> 422 QIT002002                              [em andamento]
 # - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)       [CPF feito; e-mail em andamento]
-# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [inexistente e irregular feitos; divergente em andamento]
+# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [birô: 422 feitos; 502 em andamento]
 # - birô sem resposta -> 502 QIT002009
 # - corpo fora do formato -> 400 QIT000001
 from datetime import date
@@ -110,3 +110,13 @@ def test_nome_divergente_do_bureau_devolve_422_qit002008():
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "QIT002008"
+
+
+def test_birô_sem_resposta_no_prazo_devolve_502_qit002009():
+    payload = customer_payload()
+    mock_bureau(payload, delay_seconds=4)
+
+    resposta = requests.post(URL, json=payload, headers=HEADERS)
+
+    assert resposta.status_code == 502
+    assert resposta.json()["code"] == "QIT002009"
