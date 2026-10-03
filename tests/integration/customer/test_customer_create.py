@@ -2,7 +2,7 @@
 # - cadastro válido -> 201 com customer_key                      [feito]
 # - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
 # - menos de 15 anos -> 422 QIT002002                              [em andamento]
-# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)
+# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)       [em andamento: CPF]
 # - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)
 # - birô sem resposta -> 502 QIT002009
 # - corpo fora do formato -> 400 QIT000001
@@ -47,3 +47,14 @@ def test_menor_de_15_anos_devolve_422_qit002002():
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "QIT002002"
+
+
+def test_cpf_ja_cadastrado_devolve_409_qit002003():
+    payload = customer_payload()
+    mock_bureau_ok(payload)
+    requests.post(URL, json=payload, headers=HEADERS)
+
+    resposta = requests.post(URL, json=customer_payload(document_number=payload["document_number"]), headers=HEADERS)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "QIT002003"
