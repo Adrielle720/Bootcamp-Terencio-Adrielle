@@ -69,3 +69,14 @@ def test_email_ja_cadastrado_devolve_409_qit002004():
 
     assert resposta.status_code == 409
     assert resposta.json()["code"] == "QIT002004"
+
+
+def test_telefone_ja_cadastrado_devolve_409_qit002005():
+    payload = customer_payload()
+    mock_bureau_ok(payload)
+    requests.post(URL, json=payload, headers=HEADERS)
+
+    resposta = requests.post(URL, json=customer_payload(phone=payload["phone"]), headers=HEADERS)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "QIT002005"
