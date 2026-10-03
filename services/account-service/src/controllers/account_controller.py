@@ -1,5 +1,5 @@
 from controllers.base_controller import BaseController
-from errors import CustomerNotFound
+from errors import CustomerNotFound, CustomerNotFoundByPhone
 from repositories import AccountRepository
 
 
@@ -13,7 +13,12 @@ class AccountController(BaseController):
         if master is None:
             raise CustomerNotFound(account_data["customer_key"])
 
-        invited = [self.account_repository.get_customer_by_phone(phone) for phone in account_data["invite_phones"]]
+        invited = []
+        for phone in account_data["invite_phones"]:
+            customer = self.account_repository.get_customer_by_phone(phone)
+            if customer is None:
+                raise CustomerNotFoundByPhone(phone)
+            invited.append(customer)
 
         account = self.account_repository.create(account_data["name"], master, invited)
         self.session.commit()
