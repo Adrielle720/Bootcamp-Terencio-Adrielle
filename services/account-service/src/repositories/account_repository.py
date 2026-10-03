@@ -50,6 +50,14 @@ class AccountRepository:
             AccountHolder.status_id == self.status_id_of("holder", "INVITED"),
         ).first() is not None
 
+    def is_master(self, account: Account, customer_key: str) -> bool:
+        return self.session.query(AccountHolder.id).join(Customer, AccountHolder.customer_id == Customer.id).filter(
+            AccountHolder.account_id == account.id,
+            AccountHolder.role == "MASTER",
+            AccountHolder.status_id == self.status_id_of("holder", "ACTIVE"),
+            Customer.customer_key == customer_key,
+        ).first() is not None
+
     def cancel_account(self, account: Account) -> None:
         account.status_id = self.status_id_of("account", "CANCELED")
         for holder in self.session.query(AccountHolder).filter(AccountHolder.account_id == account.id).all():

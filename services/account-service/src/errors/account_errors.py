@@ -98,3 +98,25 @@ class HolderNotPending(QIException):
         description = f"The invitation {holder_key} is no longer pending."
         translation = "Este convite não está mais pendente."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class NotMaster(QIException):
+    code = "QIT002028"
+
+    def __init__(self, customer_key) -> None:
+        title = "Only the master can do this"
+        http_status = 422
+        description = f"The customer {customer_key} is not the master of this account."
+        translation = "Só o master da conta pode fazer isso."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class AccountNotPending(QIException):
+    code = "QIT002026"
+
+    def __init__(self, account_key) -> None:
+        title = "Account is not in the right status"
+        http_status = 409
+        description = f"The account {account_key} is not in the status required for this operation."
+        translation = "A conta não está no estado necessário para esta operação."
+        super().__init__(title, self.code, http_status, description, translation)
