@@ -1,11 +1,13 @@
 # Casos da rota POST /customer (RFC):
 # - cadastro válido -> 201 com customer_key                      [feito]
 # - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
-# - menos de 15 anos -> 422 QIT002002
+# - menos de 15 anos -> 422 QIT002002                              [em andamento]
 # - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)
 # - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)
 # - birô sem resposta -> 502 QIT002009
 # - corpo fora do formato -> 400 QIT000001
+from datetime import date
+
 import requests
 
 from utils.generators import customer_payload
@@ -35,3 +37,13 @@ def test_cpf_com_digitos_verificadores_errados_devolve_422_qit002001():
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "QIT002001"
+
+
+def test_menor_de_15_anos_devolve_422_qit002002():
+    nascimento_recente = date.today().replace(year=date.today().year - 10).isoformat()
+    payload = customer_payload(birthdate=nascimento_recente)
+
+    resposta = requests.post(URL, json=payload, headers=HEADERS)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002002"
