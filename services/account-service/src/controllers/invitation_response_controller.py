@@ -28,6 +28,7 @@ class InvitationResponseController(BaseController):
         holder = self._find_pending_holder(holder_key, customer_key)
 
         holder.status_id = self.account_repository.status_id_of("holder", "DECLINED")
+        self.session.flush()
 
         account = self.account_repository.get_account_of(holder)
         if self.account_repository.is_account_in_status(account, "PENDING") and not self.account_repository.has_invited_holders(account):
