@@ -76,3 +76,25 @@ class NoSeatsLeft(QIException):
         description = "The account already has six holders."
         translation = "A conta já tem seis participantes."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class HolderNotFound(QIException):
+    code = "QIT002030"
+
+    def __init__(self, holder_key) -> None:
+        title = "Invitation not found"
+        http_status = 404
+        description = f"There is no invitation {holder_key} for this customer."
+        translation = "Convite não encontrado."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class HolderNotPending(QIException):
+    code = "QIT002031"
+
+    def __init__(self, holder_key) -> None:
+        title = "Invitation is not pending"
+        http_status = 409
+        description = f"The invitation {holder_key} is no longer pending."
+        translation = "Este convite não está mais pendente."
+        super().__init__(title, self.code, http_status, description, translation)
