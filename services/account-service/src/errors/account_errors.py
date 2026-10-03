@@ -21,3 +21,14 @@ class CustomerNotFoundByPhone(QIException):
         description = f"There is no customer with the phone {phone}."
         translation = "Não existe cliente cadastrado com este telefone."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class MasterIsUnderage(QIException):
+    code = "QIT002021"
+
+    def __init__(self, age, minimum_age) -> None:
+        title = "Master is underage"
+        http_status = 422
+        description = f"The master is {age} years old, and the minimum is {minimum_age}."
+        translation = f"O master da conta precisa ter pelo menos {minimum_age} anos."
+        super().__init__(title, self.code, http_status, description, translation)
