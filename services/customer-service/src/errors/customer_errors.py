@@ -21,3 +21,14 @@ class UnderageCustomer(QIException):
         description = f"The customer is {age} years old, and the minimum is {minimum_age}."
         translation = f"O cadastro exige pelo menos {minimum_age} anos."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class DuplicatedDocumentNumber(QIException):
+    code = "QIT002003"
+
+    def __init__(self, document_number) -> None:
+        title = "Document Number already registered"
+        http_status = 409
+        description = f"There is already a customer with the document number {document_number}."
+        translation = "Já existe um cadastro com este CPF."
+        super().__init__(title, self.code, http_status, description, translation)

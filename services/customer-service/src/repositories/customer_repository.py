@@ -25,3 +25,6 @@ class CustomerRepository:
 
         self.session.add(customer)
         return customer
+
+    def get_by_document_number(self, document_number: str) -> Customer:
+        return self.session.query(Customer).filter(Customer.document_number == document_number).first()

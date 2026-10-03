@@ -1,7 +1,7 @@
 from datetime import date
 
 from controllers.base_controller import BaseController
-from errors import InvalidDocumentNumber, UnderageCustomer
+from errors import DuplicatedDocumentNumber, InvalidDocumentNumber, UnderageCustomer
 from repositories import CustomerRepository
 from utils.document_number import is_valid_cpf
 
@@ -16,6 +16,9 @@ class CustomerController(BaseController):
     def create(self, customer_data: dict) -> dict:
         if not is_valid_cpf(customer_data["document_number"]):
             raise InvalidDocumentNumber(customer_data["document_number"])
+
+        if self.customer_repository.get_by_document_number(customer_data["document_number"]) is not None:
+            raise DuplicatedDocumentNumber(customer_data["document_number"])
 
         birthdate = date.fromisoformat(customer_data["birthdate"])
         age = self._age_in_years(birthdate)
