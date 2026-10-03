@@ -15,6 +15,7 @@ def criar_conta_ativa() -> dict:
     )
     conta.raise_for_status()
     account_key = conta.json()["account_key"]
+    account_number = conta.json()["account_number"]
 
     convites = requests.get(f"{SERVICES['customer-service']}/customer/{convidado['customer_key']}/invitations",
                             headers=HEADERS).json()["data"]
@@ -22,4 +23,4 @@ def criar_conta_ativa() -> dict:
     requests.put(f"{SERVICES['account-service']}/invitation/{holder_key}/accept",
                  json={"customer_key": convidado["customer_key"]}, headers=HEADERS).raise_for_status()
 
-    return {"master": master, "convidado": convidado, "account_key": account_key}
+    return {"master": master, "convidado": convidado, "account_key": account_key, "account_number": account_number}
