@@ -32,3 +32,14 @@ class MasterIsUnderage(QIException):
         description = f"The master is {age} years old, and the minimum is {minimum_age}."
         translation = f"O master da conta precisa ter pelo menos {minimum_age} anos."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class CustomerAlreadyInAccount(QIException):
+    code = "QIT002022"
+
+    def __init__(self, customer_key) -> None:
+        title = "Customer already in an account"
+        http_status = 409
+        description = f"The customer {customer_key} already has an account or a pending invitation."
+        translation = "Esta pessoa já participa de outra conta ou tem um convite pendente."
+        super().__init__(title, self.code, http_status, description, translation)

@@ -15,6 +15,13 @@ class AccountRepository:
     def get_customer_by_phone(self, phone: str) -> Customer:
         return self.session.query(Customer).filter(Customer.phone == phone).first()
 
+    def has_open_holder(self, customer: Customer) -> bool:
+        open_statuses = self.session.query(HolderStatus.id).filter(HolderStatus.enumerator.in_(["INVITED", "ACTIVE"]))
+        return self.session.query(AccountHolder.id).filter(
+            AccountHolder.customer_id == customer.id,
+            AccountHolder.status_id.in_(open_statuses.subquery()),
+        ).first() is not None
+
     def create(self, name: str, master: Customer, invited: list) -> Account:
         account = Account()
         account.account_key = str(uuid4())

@@ -1,7 +1,7 @@
 from datetime import date
 
 from controllers.base_controller import BaseController
-from errors import CustomerNotFound, CustomerNotFoundByPhone, MasterIsUnderage
+from errors import CustomerAlreadyInAccount, CustomerNotFound, CustomerNotFoundByPhone, MasterIsUnderage
 from repositories import AccountRepository
 
 
@@ -28,6 +28,10 @@ class AccountController(BaseController):
             if customer is None:
                 raise CustomerNotFoundByPhone(phone)
             invited.append(customer)
+
+        for customer in [master, *invited]:
+            if self.account_repository.has_open_holder(customer):
+                raise CustomerAlreadyInAccount(customer.customer_key)
 
         account = self.account_repository.create(account_data["name"], master, invited)
         self.session.commit()
