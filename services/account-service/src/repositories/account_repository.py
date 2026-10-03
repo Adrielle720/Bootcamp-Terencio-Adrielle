@@ -44,6 +44,17 @@ class AccountRepository:
             AccountHolder.status_id.in_(self._open_holder_status_ids()),
         ).first() is not None
 
+    def has_invited_holders(self, account: Account) -> bool:
+        return self.session.query(AccountHolder.id).filter(
+            AccountHolder.account_id == account.id,
+            AccountHolder.status_id == self.status_id_of("holder", "INVITED"),
+        ).first() is not None
+
+    def cancel_account(self, account: Account) -> None:
+        account.status_id = self.status_id_of("account", "CANCELED")
+        for holder in self.session.query(AccountHolder).filter(AccountHolder.account_id == account.id).all():
+            holder.status_id = self.status_id_of("holder", "CANCELED")
+
     def is_holder_in_status(self, holder: AccountHolder, enumerator: str) -> bool:
         return holder.status_id == self.status_id_of("holder", enumerator)
 

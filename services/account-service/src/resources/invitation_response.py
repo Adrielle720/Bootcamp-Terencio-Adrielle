@@ -11,3 +11,9 @@ class InvitationResponseResource:
         holder = InvitationResponseController().accept(holder_key, payload["customer_key"])
 
         return JSONResponse(content=holder, status_code=status.HTTP_200_OK)
+
+    @SchemaHandler.validate("holder_action.json")
+    def on_put_decline(self, holder_key: str, payload: dict = Body(...)) -> JSONResponse:
+        holder = InvitationResponseController().decline(holder_key, payload["customer_key"])
+
+        return JSONResponse(content=holder, status_code=status.HTTP_200_OK)

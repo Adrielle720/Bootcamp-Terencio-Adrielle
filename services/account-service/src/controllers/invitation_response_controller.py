@@ -24,6 +24,19 @@ class InvitationResponseController(BaseController):
 
         return {"holder_key": holder.holder_key}
 
+    def decline(self, holder_key: str, customer_key: str) -> dict:
+        holder = self._find_pending_holder(holder_key, customer_key)
+
+        holder.status_id = self.account_repository.status_id_of("holder", "DECLINED")
+
+        account = self.account_repository.get_account_of(holder)
+        if self.account_repository.is_account_in_status(account, "PENDING") and not self.account_repository.has_invited_holders(account):
+            self.account_repository.cancel_account(account)
+
+        self.session.commit()
+
+        return {"holder_key": holder.holder_key}
+
     def _find_pending_holder(self, holder_key: str, customer_key: str):
         holder = self.account_repository.get_holder_for_customer(holder_key, customer_key)
         if holder is None:

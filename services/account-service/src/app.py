@@ -38,6 +38,8 @@ def create_app() -> FastAPI:
     invitation_response_resource = InvitationResponseResource()
     application.add_api_route("/invitation/{holder_key}/accept", invitation_response_resource.on_put_accept, methods=["PUT"])
 
+    application.add_api_route("/invitation/{holder_key}/decline", invitation_response_resource.on_put_decline, methods=["PUT"])
+
     register_error_handlers(application)
 
     return application
