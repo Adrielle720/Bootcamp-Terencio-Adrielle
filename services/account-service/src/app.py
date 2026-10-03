@@ -9,7 +9,7 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import AccountResource, HealthCheckResource
+from resources import AccountResource, HealthCheckResource, InvitationResource
 from utils.logger import setup_logging
 
 
@@ -31,6 +31,9 @@ def create_app() -> FastAPI:
 
     account_resource = AccountResource()
     application.add_api_route("/account", account_resource.on_post, methods=["POST"])
+
+    invitation_resource = InvitationResource()
+    application.add_api_route("/account/{account_key}/invitation", invitation_resource.on_post, methods=["POST"])
 
     register_error_handlers(application)
 

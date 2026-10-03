@@ -54,3 +54,25 @@ class InvalidInvitation(QIException):
         description = f"The phone {phone} cannot be invited: it is the master or was already invited."
         translation = "Este telefone não pode ser convidado para esta conta."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class AccountNotFound(QIException):
+    code = "QIT002020"
+
+    def __init__(self, account_key) -> None:
+        title = "Account not found"
+        http_status = 404
+        description = f"There is no account with the key {account_key} for this customer."
+        translation = "Conta não encontrada."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class NoSeatsLeft(QIException):
+    code = "QIT002025"
+
+    def __init__(self) -> None:
+        title = "No seats left"
+        http_status = 409
+        description = "The account already has six holders."
+        translation = "A conta já tem seis participantes."
+        super().__init__(title, self.code, http_status, description, translation)

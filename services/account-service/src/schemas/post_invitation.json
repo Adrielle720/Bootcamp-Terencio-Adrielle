@@ -1,0 +1,20 @@
+{
+  "title": "PostInvitation",
+  "type": "object",
+  "properties": {
+    "customer_key": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36
+    },
+    "phone": {
+      "type": "string",
+      "pattern": "^[0-9]{10,11}$"
+    }
+  },
+  "required": [
+    "customer_key",
+    "phone"
+  ],
+  "additionalProperties": false
+}
