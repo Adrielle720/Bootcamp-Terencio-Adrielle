@@ -1,0 +1,2 @@
+-- Schema compartilhado pelos quatro servicos.
+-- As tabelas entram junto com cada funcionalidade, via TDD.
