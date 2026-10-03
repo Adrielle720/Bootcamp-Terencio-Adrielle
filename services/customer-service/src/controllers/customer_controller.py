@@ -1,5 +1,7 @@
 from datetime import date
 
+import requests
+
 from connectors import BureauConnector
 from controllers.base_controller import BaseController
 from errors import (
@@ -7,6 +9,7 @@ from errors import (
     DuplicatedDocumentNumber,
     DuplicatedEmail,
     BureauDataMismatch,
+    BureauUnavailable,
     DuplicatedPhone,
     InvalidDocumentNumber,
     IrregularDocumentInBureau,
@@ -41,7 +44,10 @@ class CustomerController(BaseController):
         if self.customer_repository.get_by_phone(customer_data["phone"]) is not None:
             raise DuplicatedPhone(customer_data["phone"])
 
-        bureau_response = self.bureau_connector.consult(document_number)
+        try:
+            bureau_response = self.bureau_connector.consult(document_number)
+        except requests.RequestException:
+            raise BureauUnavailable()
         if bureau_response.status == 404:
             raise DocumentNotFoundInBureau(document_number)
         if bureau_response.json["document_status"] != "REGULAR":

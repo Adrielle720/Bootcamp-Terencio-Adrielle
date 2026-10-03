@@ -87,3 +87,14 @@ class BureauDataMismatch(QIException):
         description = f"The name or birthdate does not match the credit bureau for {document_number}."
         translation = "Nome ou data de nascimento não conferem com o CPF informado."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class BureauUnavailable(QIException):
+    code = "QIT002009"
+
+    def __init__(self) -> None:
+        title = "Credit bureau unavailable"
+        http_status = 502
+        description = "The credit bureau did not respond in time."
+        translation = "O serviço de consulta de CPF não respondeu. Tente novamente."
+        super().__init__(title, self.code, http_status, description, translation)
