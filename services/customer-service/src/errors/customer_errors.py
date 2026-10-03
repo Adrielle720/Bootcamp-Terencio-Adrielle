@@ -65,3 +65,14 @@ class DocumentNotFoundInBureau(QIException):
         description = f"The document number {document_number} was not found in the credit bureau."
         translation = "O CPF informado não existe."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class IrregularDocumentInBureau(QIException):
+    code = "QIT002007"
+
+    def __init__(self, document_number) -> None:
+        title = "Irregular document"
+        http_status = 422
+        description = f"The document number {document_number} is irregular in the credit bureau."
+        translation = "O CPF informado está irregular."
+        super().__init__(title, self.code, http_status, description, translation)

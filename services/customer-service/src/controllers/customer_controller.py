@@ -8,6 +8,7 @@ from errors import (
     DuplicatedEmail,
     DuplicatedPhone,
     InvalidDocumentNumber,
+    IrregularDocumentInBureau,
     UnderageCustomer,
 )
 from repositories import CustomerRepository
@@ -42,6 +43,8 @@ class CustomerController(BaseController):
         bureau_response = self.bureau_connector.consult(document_number)
         if bureau_response.status == 404:
             raise DocumentNotFoundInBureau(document_number)
+        if bureau_response.json["document_status"] != "REGULAR":
+            raise IrregularDocumentInBureau(document_number)
 
         customer = self.customer_repository.create(customer_data=customer_data)
         self.session.commit()
