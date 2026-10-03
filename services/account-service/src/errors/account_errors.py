@@ -43,3 +43,14 @@ class CustomerAlreadyInAccount(QIException):
         description = f"The customer {customer_key} already has an account or a pending invitation."
         translation = "Esta pessoa já participa de outra conta ou tem um convite pendente."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class InvalidInvitation(QIException):
+    code = "QIT002024"
+
+    def __init__(self, phone) -> None:
+        title = "Invalid invitation"
+        http_status = 422
+        description = f"The phone {phone} cannot be invited: it is the master or was already invited."
+        translation = "Este telefone não pode ser convidado para esta conta."
+        super().__init__(title, self.code, http_status, description, translation)

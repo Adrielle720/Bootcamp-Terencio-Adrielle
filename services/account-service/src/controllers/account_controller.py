@@ -1,7 +1,13 @@
 from datetime import date
 
 from controllers.base_controller import BaseController
-from errors import CustomerAlreadyInAccount, CustomerNotFound, CustomerNotFoundByPhone, MasterIsUnderage
+from errors import (
+    CustomerAlreadyInAccount,
+    CustomerNotFound,
+    CustomerNotFoundByPhone,
+    InvalidInvitation,
+    MasterIsUnderage,
+)
 from repositories import AccountRepository
 
 
@@ -27,6 +33,8 @@ class AccountController(BaseController):
             customer = self.account_repository.get_customer_by_phone(phone)
             if customer is None:
                 raise CustomerNotFoundByPhone(phone)
+            if customer.id == master.id or customer.id in [guest.id for guest in invited]:
+                raise InvalidInvitation(phone)
             invited.append(customer)
 
         for customer in [master, *invited]:
