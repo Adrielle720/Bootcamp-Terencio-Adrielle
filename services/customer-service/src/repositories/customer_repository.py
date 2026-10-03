@@ -2,7 +2,7 @@ from datetime import date
 from uuid import uuid4
 
 from database import Context
-from models import Customer
+from models import Account, AccountHolder, Customer, HolderStatus
 
 
 class CustomerRepository:
@@ -26,6 +26,9 @@ class CustomerRepository:
         self.session.add(customer)
         return customer
 
+    def get_by_key(self, customer_key: str) -> Customer:
+        return self.session.query(Customer).filter(Customer.customer_key == customer_key).first()
+
     def get_by_document_number(self, document_number: str) -> Customer:
         return self.session.query(Customer).filter(Customer.document_number == document_number).first()
 
@@ -34,3 +37,13 @@ class CustomerRepository:
 
     def get_by_phone(self, phone: str) -> Customer:
         return self.session.query(Customer).filter(Customer.phone == phone).first()
+
+    def list_pending_invitations(self, customer: Customer) -> list:
+        return (
+            self.session.query(AccountHolder, Account)
+            .join(Account, AccountHolder.account_id == Account.id)
+            .join(HolderStatus, AccountHolder.status_id == HolderStatus.id)
+            .filter(AccountHolder.customer_id == customer.id, HolderStatus.enumerator == "INVITED")
+            .order_by(AccountHolder.invited_at.desc())
+            .all()
+        )

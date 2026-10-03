@@ -1,1 +1,2 @@
 from controllers.customer_controller import CustomerController
+from controllers.invitation_list_controller import InvitationListController
