@@ -74,3 +74,28 @@ CREATE TABLE account_holder(
     left_at                         TIMESTAMP,
     UNIQUE(holder_key)
 );
+
+CREATE TABLE account_balance(
+    account_id                      INTEGER PRIMARY KEY REFERENCES account(id),
+    balance_cents                   BIGINT NOT NULL CHECK (balance_cents >= 0),
+    updated_at                      TIMESTAMP NOT NULL DEFAULT(NOW())
+);
+
+CREATE TABLE deposit(
+    id                              SERIAL PRIMARY KEY,
+    transaction_key                 CHAR(36) NOT NULL,
+    account_id                      INTEGER NOT NULL REFERENCES account(id),
+    customer_id                     INTEGER NOT NULL REFERENCES customer(id),
+    amount_cents                    BIGINT NOT NULL CHECK (amount_cents >= 1000),
+    created_at                      TIMESTAMP NOT NULL DEFAULT(NOW()),
+    UNIQUE(transaction_key)
+);
+
+CREATE TABLE ledger_entry(
+    id                              SERIAL PRIMARY KEY,
+    account_id                      INTEGER NOT NULL REFERENCES account(id),
+    deposit_id                      INTEGER REFERENCES deposit(id),
+    entry_type                      VARCHAR(20) NOT NULL,
+    amount_cents                    BIGINT NOT NULL,
+    created_at                      TIMESTAMP NOT NULL DEFAULT(NOW())
+);

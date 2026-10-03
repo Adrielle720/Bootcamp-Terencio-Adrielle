@@ -1,1 +1,2 @@
+from resources.deposit import DepositResource
 from resources.health_check import HealthCheckResource
