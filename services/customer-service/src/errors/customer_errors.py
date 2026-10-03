@@ -43,3 +43,14 @@ class DuplicatedEmail(QIException):
         description = f"There is already a customer with the email {email}."
         translation = "Já existe um cadastro com este e-mail."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class DuplicatedPhone(QIException):
+    code = "QIT002005"
+
+    def __init__(self, phone) -> None:
+        title = "Phone already registered"
+        http_status = 409
+        description = f"There is already a customer with the phone {phone}."
+        translation = "Já existe um cadastro com este telefone."
+        super().__init__(title, self.code, http_status, description, translation)

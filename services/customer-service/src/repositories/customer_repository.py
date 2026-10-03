@@ -31,3 +31,6 @@ class CustomerRepository:
 
     def get_by_email(self, email: str) -> Customer:
         return self.session.query(Customer).filter(Customer.email == email).first()
+
+    def get_by_phone(self, phone: str) -> Customer:
+        return self.session.query(Customer).filter(Customer.phone == phone).first()

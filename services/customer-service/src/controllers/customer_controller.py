@@ -1,7 +1,7 @@
 from datetime import date
 
 from controllers.base_controller import BaseController
-from errors import DuplicatedDocumentNumber, DuplicatedEmail, InvalidDocumentNumber, UnderageCustomer
+from errors import DuplicatedDocumentNumber, DuplicatedEmail, DuplicatedPhone, InvalidDocumentNumber, UnderageCustomer
 from repositories import CustomerRepository
 from utils.document_number import is_valid_cpf
 
@@ -22,6 +22,9 @@ class CustomerController(BaseController):
 
         if self.customer_repository.get_by_email(customer_data["email"]) is not None:
             raise DuplicatedEmail(customer_data["email"])
+
+        if self.customer_repository.get_by_phone(customer_data["phone"]) is not None:
+            raise DuplicatedPhone(customer_data["phone"])
 
         birthdate = date.fromisoformat(customer_data["birthdate"])
         age = self._age_in_years(birthdate)
