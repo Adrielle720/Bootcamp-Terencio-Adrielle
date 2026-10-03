@@ -4,7 +4,8 @@
 # - aceitar de novo -> 409 QIT002031  [coberto pelo código do aceite]
 # - convite de outra pessoa -> 404 QIT002030  [coberto pelo código do aceite]
 # - recusa do último convite de conta pendente cancela a conta e libera o master  [feito]
-# - master cancela convite pendente -> 200  [em andamento]
+# - master cancela convite pendente -> 200  [feito]
+# - cancelamento de convite: não-master 422 QIT002028, já recusado 409 QIT002031, inexistente 404 QIT002030  [feito]
 import requests
 
 from utils.customer_utils import cadastrar_cliente
@@ -115,3 +116,48 @@ def test_master_cancela_convite_pendente_e_recebe_200():
                             json={"customer_key": master["customer_key"]}, headers=HEADERS)
 
     assert resposta.status_code == 200
+
+
+def test_quem_nao_e_master_nao_cancela_convite_devolve_422_qit002028():
+    master = cadastrar_cliente()
+    convidado = cadastrar_cliente()
+    account_key = _criar_conta(master, convidado)
+    holder_key = _holder_key_do_convite(convidado, account_key)
+
+    resposta = requests.put(f"{ACCOUNT_URL.replace('/account', '')}/invitation/{holder_key}/cancel",
+                            json={"customer_key": convidado["customer_key"]}, headers=HEADERS)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002028"
+
+
+def test_cancelar_convite_ja_recusado_devolve_409_qit002031():
+    master = cadastrar_cliente()
+    recusante = cadastrar_cliente()
+    outro_convidado = cadastrar_cliente()
+    resposta_conta = requests.post(
+        ACCOUNT_URL,
+        json={"customer_key": master["customer_key"], "name": "Apartamento 302",
+              "invite_phones": [recusante["phone"], outro_convidado["phone"]]},
+        headers=HEADERS,
+    )
+    account_key = resposta_conta.json()["account_key"]
+    holder_key = _holder_key_do_convite(recusante, account_key)
+    requests.put(f"{ACCOUNT_URL.replace('/account', '')}/invitation/{holder_key}/decline",
+                 json={"customer_key": recusante["customer_key"]}, headers=HEADERS)
+
+    resposta = requests.put(f"{ACCOUNT_URL.replace('/account', '')}/invitation/{holder_key}/cancel",
+                            json={"customer_key": master["customer_key"]}, headers=HEADERS)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "QIT002031"
+
+
+def test_cancelar_convite_inexistente_devolve_404_qit002030():
+    master = cadastrar_cliente()
+
+    resposta = requests.put(f"{ACCOUNT_URL.replace('/account', '')}/invitation/00000000-0000-0000-0000-000000000000/cancel",
+                            json={"customer_key": master["customer_key"]}, headers=HEADERS)
+
+    assert resposta.status_code == 404
+    assert resposta.json()["code"] == "QIT002030"
