@@ -1,10 +1,11 @@
 # Casos da rota POST /account (RFC):
 # - master adulto abre conta pendente com convidados -> 201 com account_key e account_number  [em andamento]
 # - master inexistente -> 404 QIT002010
-# - master com menos de 18 anos -> 422 QIT002021
+# - master com menos de 18 anos -> 422 QIT002021  [em andamento]
 # - master ou convidado já tem conta/convite -> 409 QIT002022
 # - telefone sem cliente -> 404 QIT002023  [em andamento]
 # - convite a si mesmo ou repetido -> 422 QIT002024
+from datetime import date
 import re
 
 import requests
@@ -43,3 +44,18 @@ def test_telefone_sem_cliente_devolve_404_qit002023():
 
     assert resposta.status_code == 404
     assert resposta.json()["code"] == "QIT002023"
+
+
+def test_master_menor_de_18_anos_devolve_422_qit002021():
+    nascimento = date.today().replace(year=date.today().year - 16).isoformat()
+    master = cadastrar_cliente(birthdate=nascimento)
+    convidado = cadastrar_cliente()
+
+    resposta = requests.post(
+        URL,
+        json={"customer_key": master["customer_key"], "name": "Apartamento 302", "invite_phones": [convidado["phone"]]},
+        headers=HEADERS,
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002021"
