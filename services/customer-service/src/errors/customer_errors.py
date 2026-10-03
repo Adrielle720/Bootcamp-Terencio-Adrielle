@@ -76,3 +76,14 @@ class IrregularDocumentInBureau(QIException):
         description = f"The document number {document_number} is irregular in the credit bureau."
         translation = "O CPF informado está irregular."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class BureauDataMismatch(QIException):
+    code = "QIT002008"
+
+    def __init__(self, document_number) -> None:
+        title = "Data does not match the bureau"
+        http_status = 422
+        description = f"The name or birthdate does not match the credit bureau for {document_number}."
+        translation = "Nome ou data de nascimento não conferem com o CPF informado."
+        super().__init__(title, self.code, http_status, description, translation)

@@ -6,6 +6,7 @@ from errors import (
     DocumentNotFoundInBureau,
     DuplicatedDocumentNumber,
     DuplicatedEmail,
+    BureauDataMismatch,
     DuplicatedPhone,
     InvalidDocumentNumber,
     IrregularDocumentInBureau,
@@ -45,6 +46,9 @@ class CustomerController(BaseController):
             raise DocumentNotFoundInBureau(document_number)
         if bureau_response.json["document_status"] != "REGULAR":
             raise IrregularDocumentInBureau(document_number)
+        bureau_data = bureau_response.json
+        if bureau_data["name"] != customer_data["name"] or bureau_data["birthdate"] != customer_data["birthdate"]:
+            raise BureauDataMismatch(document_number)
 
         customer = self.customer_repository.create(customer_data=customer_data)
         self.session.commit()
