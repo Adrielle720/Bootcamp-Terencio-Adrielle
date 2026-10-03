@@ -46,6 +46,7 @@ services:
       <<: *common-env
       SERVICE_NAME: customer-service
       BUREAU_URL: http://mockserver:1080
+      BUREAU_TIMEOUT: 2
     depends_on:
       db:
         condition: service_healthy

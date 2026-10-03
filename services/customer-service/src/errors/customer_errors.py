@@ -54,3 +54,14 @@ class DuplicatedPhone(QIException):
         description = f"There is already a customer with the phone {phone}."
         translation = "Já existe um cadastro com este telefone."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class DocumentNotFoundInBureau(QIException):
+    code = "QIT002006"
+
+    def __init__(self, document_number) -> None:
+        title = "Document not found"
+        http_status = 422
+        description = f"The document number {document_number} was not found in the credit bureau."
+        translation = "O CPF informado não existe."
+        super().__init__(title, self.code, http_status, description, translation)
