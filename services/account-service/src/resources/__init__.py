@@ -1,1 +1,2 @@
+from resources.account import AccountResource
 from resources.health_check import HealthCheckResource

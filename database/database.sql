@@ -19,3 +19,58 @@ CREATE TABLE customer(
     UNIQUE(email),
     UNIQUE(phone)
 );
+
+CREATE TABLE account_status(
+    id                              SERIAL PRIMARY KEY,
+    enumerator                      VARCHAR(50) NOT NULL,
+    UNIQUE(enumerator)
+);
+
+INSERT INTO account_status (enumerator) VALUES
+('PENDING'),
+('ACTIVE'),
+('BLOCKED'),
+('CANCELED'),
+('CLOSING'),
+('CLOSED');
+
+CREATE TABLE holder_status(
+    id                              SERIAL PRIMARY KEY,
+    enumerator                      VARCHAR(50) NOT NULL,
+    UNIQUE(enumerator)
+);
+
+INSERT INTO holder_status (enumerator) VALUES
+('INVITED'),
+('ACTIVE'),
+('DECLINED'),
+('CANCELED'),
+('LEFT');
+
+CREATE TABLE account(
+    id                              SERIAL PRIMARY KEY,
+    account_key                     CHAR(36) NOT NULL,
+    account_number                  VARCHAR(10) NOT NULL,
+    name                            VARCHAR(255) NOT NULL,
+    status_id                       INTEGER NOT NULL REFERENCES account_status(id),
+    transfer_limit_cents            BIGINT,
+    is_institution                  BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at                      TIMESTAMP NOT NULL DEFAULT(NOW()),
+    UNIQUE(account_key),
+    UNIQUE(account_number)
+);
+
+CREATE TABLE account_holder(
+    id                              SERIAL PRIMARY KEY,
+    holder_key                      CHAR(36) NOT NULL,
+    account_id                      INTEGER NOT NULL REFERENCES account(id),
+    customer_id                     INTEGER NOT NULL REFERENCES customer(id),
+    role                            VARCHAR(10) NOT NULL,
+    status_id                       INTEGER NOT NULL REFERENCES holder_status(id),
+    guardian_holder_id              INTEGER REFERENCES account_holder(id),
+    monthly_limit_cents             BIGINT,
+    invited_at                      TIMESTAMP NOT NULL DEFAULT(NOW()),
+    joined_at                       TIMESTAMP,
+    left_at                         TIMESTAMP,
+    UNIQUE(holder_key)
+);
