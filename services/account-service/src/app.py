@@ -43,6 +43,8 @@ def create_app() -> FastAPI:
     account_cancel_resource = AccountCancelResource()
     application.add_api_route("/account/{account_key}/cancel", account_cancel_resource.on_put, methods=["PUT"])
 
+    application.add_api_route("/invitation/{holder_key}/cancel", invitation_response_resource.on_put_cancel, methods=["PUT"])
+
     register_error_handlers(application)
 
     return application

@@ -21,6 +21,9 @@ class AccountRepository:
     def get_account_of(self, holder: AccountHolder) -> Account:
         return self.session.query(Account).filter(Account.id == holder.account_id).first()
 
+    def get_holder_by_key(self, holder_key: str) -> AccountHolder:
+        return self.session.query(AccountHolder).filter(AccountHolder.holder_key == holder_key).first()
+
     def get_holder_for_customer(self, holder_key: str, customer_key: str) -> AccountHolder:
         return (
             self.session.query(AccountHolder)
