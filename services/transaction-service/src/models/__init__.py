@@ -6,3 +6,4 @@ from models.customer import Customer
 from models.deposit import Deposit
 from models.holder_status import HolderStatus
 from models.ledger_entry import LedgerEntry
+from models.transfer import Transfer

@@ -9,7 +9,7 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import DepositResource, HealthCheckResource
+from resources import DepositResource, HealthCheckResource, TransferResource
 from utils.logger import setup_logging
 
 
@@ -27,6 +27,9 @@ def create_app() -> FastAPI:
 
     deposit_resource = DepositResource()
     application.add_api_route("/account/{account_key}/deposit", deposit_resource.on_post, methods=["POST"])
+
+    transfer_resource = TransferResource()
+    application.add_api_route("/account/{account_key}/transfer", transfer_resource.on_post, methods=["POST"])
 
     register_error_handlers(application)
 

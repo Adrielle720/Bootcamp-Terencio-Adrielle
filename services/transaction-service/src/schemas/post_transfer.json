@@ -1,0 +1,30 @@
+{
+  "title": "PostTransfer",
+  "type": "object",
+  "properties": {
+    "customer_key": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36
+    },
+    "amount_cents": {
+      "type": "integer",
+      "minimum": 1000
+    },
+    "destination_account_number": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9]$"
+    },
+    "destination_document_number": {
+      "type": "string",
+      "pattern": "^\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}$"
+    }
+  },
+  "required": [
+    "customer_key",
+    "amount_cents",
+    "destination_account_number",
+    "destination_document_number"
+  ],
+  "additionalProperties": false
+}

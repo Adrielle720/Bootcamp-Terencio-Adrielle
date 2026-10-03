@@ -21,3 +21,14 @@ class AccountNotAvailable(QIException):
         description = f"The account {account_key} cannot receive or send money in its current status."
         translation = "A conta não está em um estado que permite esta operação."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class DestinationNotFound(QIException):
+    code = "QIT002041"
+
+    def __init__(self) -> None:
+        title = "Destination not found"
+        http_status = 404
+        description = "The destination account or its holder could not be found."
+        translation = "Não foi possível localizar o destino da transferência."
+        super().__init__(title, self.code, http_status, description, translation)

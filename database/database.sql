@@ -99,3 +99,22 @@ CREATE TABLE ledger_entry(
     amount_cents                    BIGINT NOT NULL,
     created_at                      TIMESTAMP NOT NULL DEFAULT(NOW())
 );
+
+CREATE TABLE transfer(
+    id                              SERIAL PRIMARY KEY,
+    transaction_key                 CHAR(36) NOT NULL,
+    origin_account_id               INTEGER NOT NULL REFERENCES account(id),
+    destination_account_id          INTEGER NOT NULL REFERENCES account(id),
+    requested_by_id                 INTEGER NOT NULL REFERENCES customer(id),
+    verified_holder_id              INTEGER NOT NULL REFERENCES account_holder(id),
+    amount_cents                    BIGINT NOT NULL CHECK (amount_cents >= 1000),
+    fee_cents                       BIGINT NOT NULL DEFAULT 0,
+    adult_count                     INTEGER NOT NULL DEFAULT 0,
+    idempotency_key                 CHAR(36) NOT NULL,
+    created_at                      TIMESTAMP NOT NULL DEFAULT(NOW()),
+    UNIQUE(transaction_key),
+    UNIQUE(origin_account_id, idempotency_key),
+    CHECK (origin_account_id <> destination_account_id)
+);
+
+ALTER TABLE ledger_entry ADD COLUMN transfer_id INTEGER REFERENCES transfer(id);
