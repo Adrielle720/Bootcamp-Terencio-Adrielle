@@ -3,7 +3,7 @@
 # - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
 # - menos de 15 anos -> 422 QIT002002                              [em andamento]
 # - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)       [CPF feito; e-mail em andamento]
-# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)
+# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [em andamento: inexistente]
 # - birô sem resposta -> 502 QIT002009
 # - corpo fora do formato -> 400 QIT000001
 from datetime import date
@@ -11,7 +11,7 @@ from datetime import date
 import requests
 
 from utils.generators import customer_payload
-from utils.mock_utils import mock_bureau_ok
+from utils.mock_utils import mock_bureau, mock_bureau_ok
 from utils.settings import HEADERS, SERVICES
 
 URL = f"{SERVICES['customer-service']}/customer"
@@ -80,3 +80,13 @@ def test_telefone_ja_cadastrado_devolve_409_qit002005():
 
     assert resposta.status_code == 409
     assert resposta.json()["code"] == "QIT002005"
+
+
+def test_cpf_inexistente_no_bureau_devolve_422_qit002006():
+    payload = customer_payload()
+    mock_bureau(payload, status=404)
+
+    resposta = requests.post(URL, json=payload, headers=HEADERS)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002006"
