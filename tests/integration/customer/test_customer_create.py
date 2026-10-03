@@ -3,9 +3,9 @@
 # - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
 # - menos de 15 anos -> 422 QIT002002                              [em andamento]
 # - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)       [CPF feito; e-mail em andamento]
-# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [birô: 422 feitos; 502 em andamento]
+# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [birô feito]
 # - birô sem resposta -> 502 QIT002009
-# - corpo fora do formato -> 400 QIT000001
+# - corpo fora do formato -> 400 QIT000001                          [em andamento]
 from datetime import date
 
 import requests
@@ -120,3 +120,10 @@ def test_birô_sem_resposta_no_prazo_devolve_502_qit002009():
 
     assert resposta.status_code == 502
     assert resposta.json()["code"] == "QIT002009"
+
+
+def test_corpo_fora_do_formato_devolve_400_qit000001():
+    resposta = requests.post(URL, json={}, headers=HEADERS)
+
+    assert resposta.status_code == 400
+    assert resposta.json()["code"] == "QIT000001"
