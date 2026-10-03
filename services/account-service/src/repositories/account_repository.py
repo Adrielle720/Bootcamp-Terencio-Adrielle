@@ -18,6 +18,17 @@ class AccountRepository:
     def get_account_by_key(self, account_key: str) -> Account:
         return self.session.query(Account).filter(Account.account_key == account_key).first()
 
+    def get_account_of(self, holder: AccountHolder) -> Account:
+        return self.session.query(Account).filter(Account.id == holder.account_id).first()
+
+    def get_holder_for_customer(self, holder_key: str, customer_key: str) -> AccountHolder:
+        return (
+            self.session.query(AccountHolder)
+            .join(Customer, AccountHolder.customer_id == Customer.id)
+            .filter(AccountHolder.holder_key == holder_key, Customer.customer_key == customer_key)
+            .first()
+        )
+
     def count_open_holders(self, account: Account) -> int:
         return self.session.query(AccountHolder.id).filter(
             AccountHolder.account_id == account.id,
@@ -32,6 +43,16 @@ class AccountRepository:
             AccountHolder.customer_id == customer.id,
             AccountHolder.status_id.in_(self._open_holder_status_ids()),
         ).first() is not None
+
+    def is_holder_in_status(self, holder: AccountHolder, enumerator: str) -> bool:
+        return holder.status_id == self.status_id_of("holder", enumerator)
+
+    def is_account_in_status(self, account: Account, enumerator: str) -> bool:
+        return account.status_id == self.status_id_of("account", enumerator)
+
+    def status_id_of(self, kind: str, enumerator: str) -> int:
+        model = HolderStatus if kind == "holder" else AccountStatus
+        return self._status_id(model, enumerator)
 
     def create(self, name: str, master: Customer, invited: list) -> Account:
         account = Account()
