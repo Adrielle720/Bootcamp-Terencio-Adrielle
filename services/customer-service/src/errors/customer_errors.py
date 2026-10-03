@@ -32,3 +32,14 @@ class DuplicatedDocumentNumber(QIException):
         description = f"There is already a customer with the document number {document_number}."
         translation = "Já existe um cadastro com este CPF."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class DuplicatedEmail(QIException):
+    code = "QIT002004"
+
+    def __init__(self, email) -> None:
+        title = "Email already registered"
+        http_status = 409
+        description = f"There is already a customer with the email {email}."
+        translation = "Já existe um cadastro com este e-mail."
+        super().__init__(title, self.code, http_status, description, translation)
