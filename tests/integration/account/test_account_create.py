@@ -4,7 +4,7 @@
 # - master com menos de 18 anos -> 422 QIT002021  [em andamento]
 # - master ou convidado já tem conta/convite -> 409 QIT002022  [em andamento]
 # - telefone sem cliente -> 404 QIT002023  [em andamento]
-# - convite a si mesmo ou repetido -> 422 QIT002024
+# - convite a si mesmo ou repetido -> 422 QIT002024  [em andamento]
 from datetime import date
 import re
 
@@ -79,3 +79,16 @@ def test_convidado_ja_convidado_em_outra_conta_devolve_409_qit002022():
 
     assert resposta.status_code == 409
     assert resposta.json()["code"] == "QIT002022"
+
+
+def test_master_convidando_a_si_mesmo_devolve_422_qit002024():
+    master = cadastrar_cliente()
+
+    resposta = requests.post(
+        URL,
+        json={"customer_key": master["customer_key"], "name": "Apartamento 302", "invite_phones": [master["phone"]]},
+        headers=HEADERS,
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002024"
