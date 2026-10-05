@@ -1,3 +1,5 @@
+# Tarifa da transferência (RFC): base da faixa + máx(0, adultos ativos − 2) × R$ 0,50
+# Faixas: 10,00–99,99 → 0,50 · 100,00–299,99 → 2,00 · 300,00–999,99 → 5,00 · 1.000,00–4.999,99 → 9,00 · ≥ 5.000,00 → 12,00
 import uuid
 
 import pytest

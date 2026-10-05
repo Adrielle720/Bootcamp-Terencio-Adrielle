@@ -1,3 +1,5 @@
+-- Schema compartilhado pelos quatro servicos.
+-- As tabelas entram junto com cada funcionalidade, via TDD.
 
 CREATE TABLE customer(
     id                              SERIAL PRIMARY KEY,
@@ -73,6 +75,7 @@ CREATE TABLE account_holder(
     UNIQUE(holder_key)
 );
 
+-- Uma pessoa só pode ter um vínculo aberto (INVITED = 1, ACTIVE = 2, pela ordem do seed acima).
 CREATE UNIQUE INDEX one_open_holder_per_customer ON account_holder(customer_id) WHERE status_id IN (1, 2);
 
 CREATE TABLE account_balance(

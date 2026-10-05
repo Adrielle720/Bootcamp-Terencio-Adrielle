@@ -1,3 +1,8 @@
+# Casos da rota POST /account/{account_key}/deposit (RFC):
+# - titular deposita em conta ativa -> 201 com transaction_key  [feito]
+# - valor abaixo de R$ 10,00 -> 400 QIT000001  [regressão]
+# - conta pendente, encerrada ou cancelada -> 409 QIT002026  [regressão: pendente]
+# - conta inexistente ou quem pede não é titular ativo -> 404 QIT002020  [regressão: não titular]
 import requests
 
 from utils.account_utils import criar_conta_ativa

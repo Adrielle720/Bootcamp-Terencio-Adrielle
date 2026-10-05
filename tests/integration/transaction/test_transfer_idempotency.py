@@ -1,3 +1,7 @@
+# Casos de idempotência da transferência (RFC):
+# - cabeçalho Idempotency-Key ausente -> 400 QIT000001                          [em andamento]
+# - mesma chave e mesmo corpo -> 201 com a mesma transação, sem débito duplicado  [em andamento]
+# - mesma chave e corpo diferente -> 422 QIT002047                              [em andamento]
 import uuid
 
 import requests

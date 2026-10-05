@@ -1,3 +1,8 @@
+# Casos de cancelamento pelo master (RFC):
+# - master cancela conta pendente -> 200 e libera o master para abrir outra   [feito]
+# - quem não é master tenta cancelar -> 422 QIT002028  [coberto pelo código do cancelamento]
+# - conta já ativa não pode ser cancelada -> 409 QIT002026  [coberto pelo código do cancelamento]
+# - conta inexistente -> 404 QIT002020  [coberto pelo código do cancelamento]
 import requests
 
 from utils.customer_utils import cadastrar_cliente

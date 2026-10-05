@@ -1,3 +1,6 @@
+# Casos da rota POST /account/{account_key}/transfer (RFC):
+# - transferência entre contas ativas -> 201 com transaction_key  [em andamento]
+# - (próximos, funcionalidades 6 a 8): tarifa, saldo, dígito verificador, idempotência
 import uuid
 
 import requests

@@ -1,3 +1,10 @@
+# Casos da rota POST /account (RFC):
+# - master adulto abre conta pendente com convidados -> 201 com account_key e account_number  [em andamento]
+# - master inexistente -> 404 QIT002010
+# - master com menos de 18 anos -> 422 QIT002021  [em andamento]
+# - master ou convidado já tem conta/convite -> 409 QIT002022  [em andamento]
+# - telefone sem cliente -> 404 QIT002023  [em andamento]
+# - convite a si mesmo ou repetido -> 422 QIT002024  [em andamento]
 from datetime import date
 import re
 

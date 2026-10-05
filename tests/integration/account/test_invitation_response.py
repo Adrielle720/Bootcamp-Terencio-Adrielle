@@ -1,3 +1,11 @@
+# Casos de aceite, recusa e cancelamento de convite (RFC):
+# - GET /customer/{key}/invitations lista os convites pendentes do cliente  [feito]
+# - aceite do convite -> 200 e conta ativa  [feito]
+# - aceitar de novo -> 409 QIT002031  [coberto pelo código do aceite]
+# - convite de outra pessoa -> 404 QIT002030  [coberto pelo código do aceite]
+# - recusa do último convite de conta pendente cancela a conta e libera o master  [feito]
+# - master cancela convite pendente -> 200  [feito]
+# - cancelamento de convite: não-master 422 QIT002028, já recusado 409 QIT002031, inexistente 404 QIT002030  [feito]
 import requests
 
 from utils.customer_utils import cadastrar_cliente

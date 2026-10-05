@@ -1,3 +1,5 @@
+# Concorrência de convites (RFC, principal desafio do modelo):
+# - grupos convidando a mesma pessoa ao mesmo tempo: exatamente uma conta criada, nenhuma 500  [em andamento]
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
