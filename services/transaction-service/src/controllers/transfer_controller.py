@@ -2,7 +2,14 @@ import hashlib
 import json
 
 from controllers.base_controller import BaseController
-from errors import AccountNotAvailable, AccountNotFound, DestinationNotFound, IdempotencyConflict, InsufficientBalance
+from errors import (
+    AccountNotAvailable,
+    AccountNotFound,
+    DestinationNotFound,
+    IdempotencyConflict,
+    InsufficientBalance,
+    TransferLimitExceeded,
+)
 from errors.base_error import InvalidSchema
 from repositories import TransactionRepository
 from utils.fee import calcular_tarifa
@@ -45,6 +52,9 @@ class TransferController(BaseController):
         amount_cents = transfer_data["amount_cents"]
         adult_count = self.transaction_repository.count_active_adults(origin)
         fee_cents = calcular_tarifa(amount_cents, adult_count)
+
+        if origin.transfer_limit_cents is not None and amount_cents > origin.transfer_limit_cents:
+            raise TransferLimitExceeded(account_key)
 
         self.transaction_repository.lock_balances([origin, destination])
         previous = self.transaction_repository.get_transfer_by_idempotency(origin, idempotency_key)

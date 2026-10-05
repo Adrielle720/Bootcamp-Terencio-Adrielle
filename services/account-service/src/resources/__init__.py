@@ -3,3 +3,4 @@ from resources.account_cancel import AccountCancelResource
 from resources.health_check import HealthCheckResource
 from resources.invitation import InvitationResource
 from resources.invitation_response import InvitationResponseResource
+from resources.transfer_limit import TransferLimitResource

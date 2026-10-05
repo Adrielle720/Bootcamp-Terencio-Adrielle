@@ -9,7 +9,7 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import AccountCancelResource, AccountResource, HealthCheckResource, InvitationResource, InvitationResponseResource
+from resources import AccountCancelResource, AccountResource, HealthCheckResource, InvitationResource, InvitationResponseResource, TransferLimitResource
 from utils.logger import setup_logging
 
 
@@ -44,6 +44,9 @@ def create_app() -> FastAPI:
     application.add_api_route("/account/{account_key}/cancel", account_cancel_resource.on_put, methods=["PUT"])
 
     application.add_api_route("/invitation/{holder_key}/cancel", invitation_response_resource.on_put_cancel, methods=["PUT"])
+
+    transfer_limit_resource = TransferLimitResource()
+    application.add_api_route("/account/{account_key}/transfer_limit", transfer_limit_resource.on_put, methods=["PUT"])
 
     register_error_handlers(application)
 

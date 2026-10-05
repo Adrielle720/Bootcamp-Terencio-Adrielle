@@ -54,3 +54,14 @@ class IdempotencyConflict(QIException):
         description = f"The Idempotency-Key {idempotency_key} was already used with a different request."
         translation = "Esta chave de idempotência já foi usada com outro pedido."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class TransferLimitExceeded(QIException):
+    code = "QIT002044"
+
+    def __init__(self, account_key) -> None:
+        title = "Transfer limit exceeded"
+        http_status = 422
+        description = f"The amount exceeds the transfer limit of the account {account_key}."
+        translation = "O valor ultrapassa o limite por transferência desta conta."
+        super().__init__(title, self.code, http_status, description, translation)

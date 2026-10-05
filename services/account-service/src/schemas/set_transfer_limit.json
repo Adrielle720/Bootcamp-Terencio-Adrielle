@@ -1,0 +1,20 @@
+{
+  "title": "SetTransferLimit",
+  "type": "object",
+  "properties": {
+    "customer_key": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36
+    },
+    "limit_cents": {
+      "type": ["integer", "null"],
+      "minimum": 1000
+    }
+  },
+  "required": [
+    "customer_key",
+    "limit_cents"
+  ],
+  "additionalProperties": false
+}
