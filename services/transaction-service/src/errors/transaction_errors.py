@@ -43,3 +43,14 @@ class InsufficientBalance(QIException):
         description = f"The account {account_key} does not have enough balance to cover the amount and the fee."
         translation = "Saldo insuficiente para cobrir o valor e a tarifa."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class IdempotencyConflict(QIException):
+    code = "QIT002047"
+
+    def __init__(self, idempotency_key) -> None:
+        title = "Idempotency key reused with a different body"
+        http_status = 422
+        description = f"The Idempotency-Key {idempotency_key} was already used with a different request."
+        translation = "Esta chave de idempotência já foi usada com outro pedido."
+        super().__init__(title, self.code, http_status, description, translation)

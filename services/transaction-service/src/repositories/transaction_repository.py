@@ -75,7 +75,7 @@ class TransactionRepository:
 
     def create_transfer(self, origin: Account, destination: Account, requester: Customer,
                         verified_holder: AccountHolder, amount_cents: int, fee_cents: int,
-                        adult_count: int, idempotency_key: str) -> Transfer:
+                        adult_count: int, idempotency_key: str, request_hash: str) -> Transfer:
         transfer = Transfer()
         transfer.transaction_key = str(uuid4())
         transfer.origin_account_id = origin.id
@@ -86,6 +86,7 @@ class TransactionRepository:
         transfer.fee_cents = fee_cents
         transfer.adult_count = adult_count
         transfer.idempotency_key = idempotency_key
+        transfer.request_hash = request_hash
         self.session.add(transfer)
         self.session.flush()
 
@@ -99,6 +100,12 @@ class TransactionRepository:
         self.add_to_balance(institution, fee_cents)
 
         return transfer
+
+    def get_transfer_by_idempotency(self, origin: Account, idempotency_key: str) -> Transfer:
+        return self.session.query(Transfer).filter(
+            Transfer.origin_account_id == origin.id,
+            Transfer.idempotency_key == idempotency_key,
+        ).first()
 
     def get_balance(self, account: Account) -> int:
         balance = self.session.query(AccountBalance).filter(AccountBalance.account_id == account.id).first()
