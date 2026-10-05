@@ -12,6 +12,7 @@ from models import (
     LedgerEntry,
     Transfer,
 )
+from utils.age import is_adult
 
 
 class TransactionRepository:
@@ -23,6 +24,9 @@ class TransactionRepository:
 
     def get_account_by_number(self, account_number: str) -> Account:
         return self.session.query(Account).filter(Account.account_number == account_number).first()
+
+    def get_institution_account(self) -> Account:
+        return self.session.query(Account).filter(Account.is_institution.is_(True)).first()
 
     def get_customer_by_key(self, customer_key: str) -> Customer:
         return self.session.query(Customer).filter(Customer.customer_key == customer_key).first()
@@ -39,6 +43,18 @@ class TransactionRepository:
 
     def is_active_holder(self, account: Account, customer: Customer) -> bool:
         return self.get_active_holder(account, customer) is not None
+
+    def count_active_adults(self, account: Account) -> int:
+        birthdates = (
+            self.session.query(Customer.birthdate)
+            .join(AccountHolder, AccountHolder.customer_id == Customer.id)
+            .filter(
+                AccountHolder.account_id == account.id,
+                AccountHolder.status_id == self._status_id(HolderStatus, "ACTIVE"),
+            )
+            .all()
+        )
+        return sum(1 for (birthdate,) in birthdates if is_adult(birthdate))
 
     def account_status_enumerator(self, account: Account) -> str:
         return self.session.query(AccountStatus.enumerator).filter(AccountStatus.id == account.status_id).scalar()
@@ -58,7 +74,8 @@ class TransactionRepository:
         return deposit
 
     def create_transfer(self, origin: Account, destination: Account, requester: Customer,
-                        verified_holder: AccountHolder, amount_cents: int, idempotency_key: str) -> Transfer:
+                        verified_holder: AccountHolder, amount_cents: int, fee_cents: int,
+                        adult_count: int, idempotency_key: str) -> Transfer:
         transfer = Transfer()
         transfer.transaction_key = str(uuid4())
         transfer.origin_account_id = origin.id
@@ -66,14 +83,20 @@ class TransactionRepository:
         transfer.requested_by_id = requester.id
         transfer.verified_holder_id = verified_holder.id
         transfer.amount_cents = amount_cents
+        transfer.fee_cents = fee_cents
+        transfer.adult_count = adult_count
         transfer.idempotency_key = idempotency_key
         self.session.add(transfer)
         self.session.flush()
 
+        institution = self.get_institution_account()
         self.session.add(LedgerEntry(account_id=origin.id, transfer_id=transfer.id, entry_type="TRANSFER_OUT", amount_cents=-amount_cents))
+        self.session.add(LedgerEntry(account_id=origin.id, transfer_id=transfer.id, entry_type="FEE", amount_cents=-fee_cents))
         self.session.add(LedgerEntry(account_id=destination.id, transfer_id=transfer.id, entry_type="TRANSFER_IN", amount_cents=amount_cents))
-        self.add_to_balance(origin, -amount_cents)
+        self.session.add(LedgerEntry(account_id=institution.id, transfer_id=transfer.id, entry_type="FEE", amount_cents=fee_cents))
+        self.add_to_balance(origin, -(amount_cents + fee_cents))
         self.add_to_balance(destination, amount_cents)
+        self.add_to_balance(institution, fee_cents)
 
         return transfer
 

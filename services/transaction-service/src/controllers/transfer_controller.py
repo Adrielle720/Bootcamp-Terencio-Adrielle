@@ -1,6 +1,7 @@
 from controllers.base_controller import BaseController
 from errors import AccountNotAvailable, AccountNotFound, DestinationNotFound
 from repositories import TransactionRepository
+from utils.fee import calcular_tarifa
 
 
 class TransferController(BaseController):
@@ -27,9 +28,18 @@ class TransferController(BaseController):
         if verified_holder is None:
             raise DestinationNotFound()
 
+        amount_cents = transfer_data["amount_cents"]
+        adult_count = self.transaction_repository.count_active_adults(origin)
+        fee_cents = calcular_tarifa(amount_cents, adult_count)
+
         transfer = self.transaction_repository.create_transfer(
-            origin, destination, requester, verified_holder, transfer_data["amount_cents"], idempotency_key,
+            origin, destination, requester, verified_holder, amount_cents, fee_cents, adult_count, idempotency_key,
         )
         self.session.commit()
 
-        return {"transaction_key": transfer.transaction_key}
+        return {
+            "transaction_key": transfer.transaction_key,
+            "amount_cents": amount_cents,
+            "fee_cents": fee_cents,
+            "total_cents": amount_cents + fee_cents,
+        }

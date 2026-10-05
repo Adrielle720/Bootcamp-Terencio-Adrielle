@@ -118,3 +118,6 @@ CREATE TABLE transfer(
 );
 
 ALTER TABLE ledger_entry ADD COLUMN transfer_id INTEGER REFERENCES transfer(id);
+
+INSERT INTO account (account_key, account_number, name, status_id, is_institution) VALUES
+('00000000-0000-0000-0000-000000000001', '00000000-0', 'Instituição', (SELECT id FROM account_status WHERE enumerator = 'ACTIVE'), TRUE);
