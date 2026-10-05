@@ -1,6 +1,3 @@
-# Concorrência da transferência (RFC):
-# - transferências simultâneas que juntas passam do saldo: exatamente uma aceita, nenhuma 500  [feito]
-# - mesma chave simultânea: uma única transação, todas as respostas 201 com a mesma chave  [em andamento]
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 

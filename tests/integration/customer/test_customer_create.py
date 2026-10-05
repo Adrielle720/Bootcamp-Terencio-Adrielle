@@ -1,11 +1,3 @@
-# Casos da rota POST /customer (RFC):
-# - cadastro válido -> 201 com customer_key                      [feito]
-# - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
-# - menos de 15 anos -> 422 QIT002002                              [em andamento]
-# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)       [CPF feito; e-mail em andamento]
-# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [birô feito]
-# - birô sem resposta -> 502 QIT002009
-# - corpo fora do formato -> 400 QIT000001                          [em andamento]
 from datetime import date
 
 import requests

@@ -1,11 +1,3 @@
-# Casos da rota POST /account/{account_key}/invitation (RFC):
-# - sétima vaga ocupada -> 409 QIT002025                              [em andamento]
-# - só o master convida -> 422 QIT002028
-# - conta cancelada ou encerrada -> 409 QIT002026
-# - convidado já participa de outra conta -> 409 QIT002022
-# - telefone sem cliente -> 404 QIT002023
-# - conta inexistente -> 404 QIT002020
-# - menor sem responsável adulto ativo -> 422 QIT002027
 import requests
 
 from utils.customer_utils import cadastrar_cliente
