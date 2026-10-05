@@ -24,6 +24,8 @@ def _depositar(conta, valor):
     (50000, 2, 500),
     (200000, 4, 1000),
     (600000, 6, 1400),
+    (29999, 2, 200),
+    (30000, 2, 500),
 ])
 def test_tarifa_segue_faixa_e_adultos_ativos(valor, adultos, tarifa_esperada):
     origem = criar_conta_com_titulares(adultos)
