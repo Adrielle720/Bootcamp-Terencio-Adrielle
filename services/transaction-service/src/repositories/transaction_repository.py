@@ -100,6 +100,10 @@ class TransactionRepository:
 
         return transfer
 
+    def get_balance(self, account: Account) -> int:
+        balance = self.session.query(AccountBalance).filter(AccountBalance.account_id == account.id).first()
+        return balance.balance_cents if balance is not None else 0
+
     def add_to_balance(self, account: Account, delta_cents: int) -> None:
         balance = self.session.query(AccountBalance).filter(AccountBalance.account_id == account.id).first()
         if balance is None:

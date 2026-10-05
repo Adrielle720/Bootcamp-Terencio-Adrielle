@@ -1,5 +1,5 @@
 from controllers.base_controller import BaseController
-from errors import AccountNotAvailable, AccountNotFound, DestinationNotFound
+from errors import AccountNotAvailable, AccountNotFound, DestinationNotFound, InsufficientBalance
 from repositories import TransactionRepository
 from utils.fee import calcular_tarifa
 
@@ -31,6 +31,9 @@ class TransferController(BaseController):
         amount_cents = transfer_data["amount_cents"]
         adult_count = self.transaction_repository.count_active_adults(origin)
         fee_cents = calcular_tarifa(amount_cents, adult_count)
+
+        if self.transaction_repository.get_balance(origin) < amount_cents + fee_cents:
+            raise InsufficientBalance(account_key)
 
         transfer = self.transaction_repository.create_transfer(
             origin, destination, requester, verified_holder, amount_cents, fee_cents, adult_count, idempotency_key,

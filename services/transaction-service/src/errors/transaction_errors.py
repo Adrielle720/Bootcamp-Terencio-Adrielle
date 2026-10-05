@@ -32,3 +32,14 @@ class DestinationNotFound(QIException):
         description = "The destination account or its holder could not be found."
         translation = "Não foi possível localizar o destino da transferência."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class InsufficientBalance(QIException):
+    code = "QIT002046"
+
+    def __init__(self, account_key) -> None:
+        title = "Insufficient balance"
+        http_status = 422
+        description = f"The account {account_key} does not have enough balance to cover the amount and the fee."
+        translation = "Saldo insuficiente para cobrir o valor e a tarifa."
+        super().__init__(title, self.code, http_status, description, translation)
