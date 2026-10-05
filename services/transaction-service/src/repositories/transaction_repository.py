@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
+
 from database import Context
 from models import (
     Account,
@@ -106,6 +108,15 @@ class TransactionRepository:
             Transfer.origin_account_id == origin.id,
             Transfer.idempotency_key == idempotency_key,
         ).first()
+
+    def lock_balances(self, accounts: list) -> None:
+        for account in sorted(accounts, key=lambda account: account.id):
+            self.session.execute(
+                postgres_insert(AccountBalance)
+                .values(account_id=account.id, balance_cents=0)
+                .on_conflict_do_nothing(index_elements=["account_id"])
+            )
+            self.session.query(AccountBalance).filter(AccountBalance.account_id == account.id).with_for_update().one()
 
     def get_balance(self, account: Account) -> int:
         balance = self.session.query(AccountBalance).filter(AccountBalance.account_id == account.id).first()

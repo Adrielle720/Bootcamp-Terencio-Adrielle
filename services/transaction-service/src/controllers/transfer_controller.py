@@ -46,6 +46,7 @@ class TransferController(BaseController):
         adult_count = self.transaction_repository.count_active_adults(origin)
         fee_cents = calcular_tarifa(amount_cents, adult_count)
 
+        self.transaction_repository.lock_balances([origin, destination])
         if self.transaction_repository.get_balance(origin) < amount_cents + fee_cents:
             raise InsufficientBalance(account_key)
 
