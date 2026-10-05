@@ -37,3 +37,33 @@ def test_transferencia_entre_contas_ativas_devolve_201():
 
     assert resposta.status_code == 201
     assert "transaction_key" in resposta.json()
+
+
+def test_transferencia_acima_do_saldo_devolve_422_qit002046():
+    origem = criar_conta_ativa()
+    destino = criar_conta_ativa()
+    _depositar(origem, 20000)
+    requests.post(
+        f"{URL}/{origem['account_key']}/transfer",
+        json={
+            "customer_key": origem["master"]["customer_key"],
+            "amount_cents": 15000,
+            "destination_account_number": destino["account_number"],
+            "destination_document_number": destino["master"]["document_number"],
+        },
+        headers={**HEADERS, "Idempotency-Key": str(uuid.uuid4())},
+    ).raise_for_status()
+
+    resposta = requests.post(
+        f"{URL}/{origem['account_key']}/transfer",
+        json={
+            "customer_key": origem["master"]["customer_key"],
+            "amount_cents": 5000,
+            "destination_account_number": destino["account_number"],
+            "destination_document_number": destino["master"]["document_number"],
+        },
+        headers={**HEADERS, "Idempotency-Key": str(uuid.uuid4())},
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002046"
