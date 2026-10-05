@@ -1,5 +1,7 @@
+from sqlalchemy.exc import IntegrityError
+
 from controllers.base_controller import BaseController
-from errors import AccountNotFound, CustomerNotFoundByPhone, NoSeatsLeft
+from errors import AccountNotFound, CustomerAlreadyInAccount, CustomerNotFoundByPhone, NoSeatsLeft
 from repositories import AccountRepository
 
 MAXIMUM_HOLDERS = 6
@@ -23,6 +25,10 @@ class InvitationController(BaseController):
             raise CustomerNotFoundByPhone(invitation_data["phone"])
 
         holder = self.account_repository.add_invitation(account, customer)
-        self.session.commit()
+        try:
+            self.session.commit()
+        except IntegrityError:
+            self.session.rollback()
+            raise CustomerAlreadyInAccount(customer.customer_key)
 
         return {"holder_key": holder.holder_key}

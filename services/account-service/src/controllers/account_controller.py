@@ -1,5 +1,7 @@
 from datetime import date
 
+from sqlalchemy.exc import IntegrityError
+
 from controllers.base_controller import BaseController
 from errors import (
     CustomerAlreadyInAccount,
@@ -42,7 +44,11 @@ class AccountController(BaseController):
                 raise CustomerAlreadyInAccount(customer.customer_key)
 
         account = self.account_repository.create(account_data["name"], master, invited)
-        self.session.commit()
+        try:
+            self.session.commit()
+        except IntegrityError:
+            self.session.rollback()
+            raise CustomerAlreadyInAccount(account_data["customer_key"])
 
         return {"account_key": account.account_key, "account_number": account.account_number}
 
