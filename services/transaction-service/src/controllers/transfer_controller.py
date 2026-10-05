@@ -47,6 +47,12 @@ class TransferController(BaseController):
         fee_cents = calcular_tarifa(amount_cents, adult_count)
 
         self.transaction_repository.lock_balances([origin, destination])
+        previous = self.transaction_repository.get_transfer_by_idempotency(origin, idempotency_key)
+        if previous is not None:
+            if previous.request_hash != request_hash:
+                raise IdempotencyConflict(idempotency_key)
+            return self._response(previous)
+
         if self.transaction_repository.get_balance(origin) < amount_cents + fee_cents:
             raise InsufficientBalance(account_key)
 
