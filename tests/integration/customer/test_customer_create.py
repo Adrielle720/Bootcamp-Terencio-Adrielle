@@ -1,4 +1,4 @@
-# Casos da rota POST /customer (RFC):
+# Casos da rota POST /customers (RFC):
 # - cadastro válido -> 201 com customer_key                      [feito]
 # - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
 # - menos de 15 anos -> 422 QIT002002                              [em andamento]
@@ -14,7 +14,7 @@ from utils.generators import customer_payload
 from utils.mock_utils import mock_bureau, mock_bureau_ok
 from utils.settings import HEADERS, SERVICES
 
-URL = f"{SERVICES['customer-service']}/customer"
+URL = f"{SERVICES['customer-service']}/customers"
 
 
 def test_cadastro_valido_devolve_201_com_customer_key():
@@ -41,7 +41,7 @@ def test_cpf_com_digitos_verificadores_errados_devolve_422_qit002001():
 
 def test_menor_de_15_anos_devolve_422_qit002002():
     nascimento_recente = date.today().replace(year=date.today().year - 10).isoformat()
-    payload = customer_payload(birthdate=nascimento_recente)
+    payload = customer_payload(birth_date=nascimento_recente)
 
     resposta = requests.post(URL, json=payload, headers=HEADERS)
 

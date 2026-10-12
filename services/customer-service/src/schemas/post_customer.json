@@ -16,7 +16,7 @@
       "minLength": 1,
       "maxLength": 255
     },
-    "birthdate": {
+    "birth_date": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     },
@@ -48,7 +48,7 @@
     "document_number",
     "name",
     "mother_name",
-    "birthdate",
+    "birth_date",
     "birth_city",
     "residence_city",
     "income_cents",

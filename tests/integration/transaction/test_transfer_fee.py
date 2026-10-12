@@ -1,47 +1,31 @@
 # Tarifa da transferência (RFC): base da faixa + máx(0, adultos ativos − 2) × R$ 0,50
 # Faixas: 10,00–99,99 → 0,50 · 100,00–299,99 → 2,00 · 300,00–999,99 → 5,00 · 1.000,00–4.999,99 → 9,00 · ≥ 5.000,00 → 12,00
-import uuid
-
 import pytest
-import requests
 
-from utils.account_utils import criar_conta_com_titulares, criar_conta_ativa
-from utils.settings import HEADERS, SERVICES
-
-URL = f"{SERVICES['transaction-service']}/account"
-
-
-def _depositar(conta, valor):
-    requests.post(
-        f"{URL}/{conta['account_key']}/deposit",
-        json={"customer_key": conta["master"]["customer_key"], "amount_cents": valor},
-        headers=HEADERS,
-    ).raise_for_status()
+from utils.account_utils import criar_conta_ativa, criar_conta_com_titulares, depositar, transferir
 
 
 @pytest.mark.parametrize("valor, adultos, tarifa_esperada", [
+    (1000, 2, 50),
+    (9999, 2, 50),
+    (10000, 2, 200),
     (25000, 3, 250),
-    (50000, 2, 500),
-    (200000, 4, 1000),
-    (600000, 6, 1400),
     (29999, 2, 200),
     (30000, 2, 500),
+    (50000, 2, 500),
+    (99999, 2, 500),
+    (100000, 2, 900),
+    (200000, 4, 1000),
+    (499999, 2, 900),
+    (500000, 2, 1200),
+    (600000, 6, 1400),
 ])
 def test_tarifa_segue_faixa_e_adultos_ativos(valor, adultos, tarifa_esperada):
     origem = criar_conta_com_titulares(adultos)
     destino = criar_conta_ativa()
-    _depositar(origem, 1000000)
+    depositar(origem, 1000000).raise_for_status()
 
-    resposta = requests.post(
-        f"{URL}/{origem['account_key']}/transfer",
-        json={
-            "customer_key": origem["master"]["customer_key"],
-            "amount_cents": valor,
-            "destination_account_number": destino["account_number"],
-            "destination_document_number": destino["master"]["document_number"],
-        },
-        headers={**HEADERS, "Idempotency-Key": str(uuid.uuid4())},
-    )
+    resposta = transferir(origem, destino, valor)
 
     assert resposta.status_code == 201
     assert resposta.json()["fee_cents"] == tarifa_esperada

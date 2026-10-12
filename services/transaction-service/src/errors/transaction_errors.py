@@ -65,3 +65,47 @@ class TransferLimitExceeded(QIException):
         description = f"The amount exceeds the transfer limit of the account {account_key}."
         translation = "O valor ultrapassa o limite por transferência desta conta."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class InvalidAccountNumber(QIException):
+    code = "QIT002040"
+
+    def __init__(self, account_number) -> None:
+        title = "Invalid account number"
+        http_status = 422
+        description = f"The check digit of the account number {account_number} does not match."
+        translation = "O dígito verificador do número da conta não confere."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class DestinationNotAvailable(QIException):
+    code = "QIT002042"
+
+    def __init__(self) -> None:
+        title = "Destination cannot receive"
+        http_status = 409
+        description = "The destination account cannot receive money in its current status."
+        translation = "A conta de destino não pode receber dinheiro agora."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class SameAccountTransfer(QIException):
+    code = "QIT002043"
+
+    def __init__(self) -> None:
+        title = "Transfer to the same account"
+        http_status = 422
+        description = "The origin and the destination are the same account."
+        translation = "Não é possível transferir para a própria conta."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class MonthlyLimitExceeded(QIException):
+    code = "QIT002045"
+
+    def __init__(self, account_key) -> None:
+        title = "Monthly limit exceeded"
+        http_status = 422
+        description = f"The amount and fee exceed the monthly limit of this minor in the account {account_key}."
+        translation = "O valor ultrapassa o limite mensal definido pelo master para este titular."
+        super().__init__(title, self.code, http_status, description, translation)

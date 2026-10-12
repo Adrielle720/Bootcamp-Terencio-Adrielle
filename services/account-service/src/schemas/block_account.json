@@ -1,0 +1,10 @@
+{
+  "title": "BlockAccount",
+  "type": "object",
+  "properties": {
+    "customer_key": {"$ref": "definitions.json#/definitions/customer_key"},
+    "reason": {"type": "string", "minLength": 1, "maxLength": 255}
+  },
+  "required": ["customer_key", "reason"],
+  "additionalProperties": false
+}

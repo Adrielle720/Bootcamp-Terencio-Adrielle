@@ -9,7 +9,7 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import AccountCancelResource, AccountResource, HealthCheckResource, InvitationResource, InvitationResponseResource, TransferLimitResource
+from resources import AccountHolderResource, AccountResource, HealthCheckResource
 from utils.logger import setup_logging
 
 
@@ -30,23 +30,20 @@ def create_app() -> FastAPI:
     )
 
     account_resource = AccountResource()
-    application.add_api_route("/account", account_resource.on_post, methods=["POST"])
+    application.add_api_route("/accounts", account_resource.on_post, methods=["POST"])
+    application.add_api_route("/accounts/{account_key}", account_resource.on_get, methods=["GET"])
+    application.add_api_route("/accounts/{account_key}/cancel", account_resource.on_put_cancel, methods=["PUT"])
+    application.add_api_route("/accounts/{account_key}/block", account_resource.on_put_block, methods=["PUT"])
+    application.add_api_route("/accounts/{account_key}/unblock", account_resource.on_put_unblock, methods=["PUT"])
+    application.add_api_route("/accounts/{account_key}/transfer-limit", account_resource.on_put_transfer_limit, methods=["PUT"])
 
-    invitation_resource = InvitationResource()
-    application.add_api_route("/account/{account_key}/invitation", invitation_resource.on_post, methods=["POST"])
-
-    invitation_response_resource = InvitationResponseResource()
-    application.add_api_route("/invitation/{holder_key}/accept", invitation_response_resource.on_put_accept, methods=["PUT"])
-
-    application.add_api_route("/invitation/{holder_key}/decline", invitation_response_resource.on_put_decline, methods=["PUT"])
-
-    account_cancel_resource = AccountCancelResource()
-    application.add_api_route("/account/{account_key}/cancel", account_cancel_resource.on_put, methods=["PUT"])
-
-    application.add_api_route("/invitation/{holder_key}/cancel", invitation_response_resource.on_put_cancel, methods=["PUT"])
-
-    transfer_limit_resource = TransferLimitResource()
-    application.add_api_route("/account/{account_key}/transfer_limit", transfer_limit_resource.on_put, methods=["PUT"])
+    holder_resource = AccountHolderResource()
+    application.add_api_route("/accounts/{account_key}/holders", holder_resource.on_post, methods=["POST"])
+    application.add_api_route("/account-holders", holder_resource.on_get_list, methods=["GET"])
+    application.add_api_route("/account-holders/{account_holder_key}/accept", holder_resource.on_put_accept, methods=["PUT"])
+    application.add_api_route("/account-holders/{account_holder_key}/decline", holder_resource.on_put_decline, methods=["PUT"])
+    application.add_api_route("/account-holders/{account_holder_key}/cancel", holder_resource.on_put_cancel, methods=["PUT"])
+    application.add_api_route("/account-holders/{account_holder_key}/monthly-limit", holder_resource.on_put_monthly_limit, methods=["PUT"])
 
     register_error_handlers(application)
 

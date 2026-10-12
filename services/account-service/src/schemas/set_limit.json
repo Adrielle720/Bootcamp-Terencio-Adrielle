@@ -1,0 +1,10 @@
+{
+  "title": "SetLimit",
+  "type": "object",
+  "properties": {
+    "customer_key": {"$ref": "definitions.json#/definitions/customer_key"},
+    "limit_cents": {"$ref": "definitions.json#/definitions/limit_cents"}
+  },
+  "required": ["customer_key", "limit_cents"],
+  "additionalProperties": false
+}

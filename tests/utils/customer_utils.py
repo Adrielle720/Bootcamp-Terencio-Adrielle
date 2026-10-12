@@ -9,7 +9,7 @@ def cadastrar_cliente(**sobrescrever) -> dict:
     payload = customer_payload(**sobrescrever)
     mock_bureau_ok(payload)
 
-    resposta = requests.post(f"{SERVICES['customer-service']}/customer", json=payload, headers=HEADERS)
+    resposta = requests.post(f"{SERVICES['customer-service']}/customers", json=payload, headers=HEADERS)
     resposta.raise_for_status()
 
     return {**payload, "customer_key": resposta.json()["customer_key"]}

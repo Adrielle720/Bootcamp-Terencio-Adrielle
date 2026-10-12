@@ -2,7 +2,7 @@ from datetime import date
 from uuid import uuid4
 
 from database import Context
-from models import Account, AccountHolder, Customer, HolderStatus
+from models import Customer
 
 
 class CustomerRepository:
@@ -16,7 +16,7 @@ class CustomerRepository:
         customer.document_number = customer_data["document_number"]
         customer.name = customer_data["name"]
         customer.mother_name = customer_data["mother_name"]
-        customer.birthdate = date.fromisoformat(customer_data["birthdate"])
+        customer.birthdate = date.fromisoformat(customer_data["birth_date"])
         customer.birth_city = customer_data["birth_city"]
         customer.residence_city = customer_data["residence_city"]
         customer.income_cents = customer_data["income_cents"]
@@ -37,13 +37,3 @@ class CustomerRepository:
 
     def get_by_phone(self, phone: str) -> Customer:
         return self.session.query(Customer).filter(Customer.phone == phone).first()
-
-    def list_pending_invitations(self, customer: Customer) -> list:
-        return (
-            self.session.query(AccountHolder, Account)
-            .join(Account, AccountHolder.account_id == Account.id)
-            .join(HolderStatus, AccountHolder.status_id == HolderStatus.id)
-            .filter(AccountHolder.customer_id == customer.id, HolderStatus.enumerator == "INVITED")
-            .order_by(AccountHolder.invited_at.desc())
-            .all()
-        )

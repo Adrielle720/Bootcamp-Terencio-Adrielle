@@ -32,7 +32,7 @@ def customer_payload(**sobrescrever) -> dict:
         "document_number": gerar_cpf(),
         "name": "Maria da Silva",
         "mother_name": "Joana da Silva",
-        "birthdate": "1990-05-17",
+        "birth_date": "1990-05-17",
         "birth_city": "São Paulo",
         "residence_city": "São Paulo",
         "income_cents": 500000,

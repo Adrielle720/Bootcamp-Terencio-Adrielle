@@ -1,0 +1,15 @@
+{
+  "title": "PostAccountHolder",
+  "type": "object",
+  "properties": {
+    "customer_key": {"$ref": "definitions.json#/definitions/customer_key"},
+    "email": {"$ref": "definitions.json#/definitions/email"},
+    "phone": {"$ref": "definitions.json#/definitions/phone"}
+  },
+  "required": ["customer_key"],
+  "oneOf": [
+    {"required": ["email"]},
+    {"required": ["phone"]}
+  ],
+  "additionalProperties": false
+}

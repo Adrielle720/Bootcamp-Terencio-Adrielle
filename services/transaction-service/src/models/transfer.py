@@ -7,7 +7,7 @@ class Transfer(Base):
     __tablename__ = "transfer"
 
     id = Column(Integer, primary_key=True)
-    transaction_key = Column(CHAR(36), nullable=False)
+    transfer_key = Column(CHAR(36), nullable=False)
     origin_account_id = Column(Integer, ForeignKey("account.id"), nullable=False)
     destination_account_id = Column(Integer, ForeignKey("account.id"), nullable=False)
     requested_by_id = Column(Integer, ForeignKey("customer.id"), nullable=False)

@@ -11,3 +11,8 @@ class CustomerResource:
         customer_key = CustomerController().create(payload)
 
         return JSONResponse(content=customer_key, status_code=status.HTTP_201_CREATED)
+
+    def on_get(self, customer_key: str) -> JSONResponse:
+        customer = CustomerController().get(customer_key)
+
+        return JSONResponse(content=customer, status_code=status.HTTP_200_OK)
