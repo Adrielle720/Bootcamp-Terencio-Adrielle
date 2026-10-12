@@ -109,3 +109,58 @@ class CustomerNotFound(QIException):
         description = f"There is no customer with the key {customer_key}."
         translation = "Cliente não encontrado."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class InvalidDocumentType(QIException):
+    code = "QIT002011"
+
+    def __init__(self, document_type) -> None:
+        title = "Invalid document type"
+        http_status = 422
+        description = f"The document type {document_type} is not accepted."
+        translation = "Tipo de documento não aceito."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class ExpiredDocument(QIException):
+    code = "QIT002012"
+
+    def __init__(self, expiration_date) -> None:
+        title = "Expired document"
+        http_status = 422
+        description = f"The document expired on {expiration_date}."
+        translation = "O documento está vencido."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class DocumentAnalysisUnavailable(QIException):
+    code = "QIT002013"
+
+    def __init__(self) -> None:
+        title = "Document analysis unavailable"
+        http_status = 502
+        description = "The document analysis service did not respond in time."
+        translation = "O serviço de análise de documentos não respondeu. Tente novamente."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class IdempotencyConflict(QIException):
+    code = "QIT002047"
+
+    def __init__(self, idempotency_key) -> None:
+        title = "Idempotency key reused with a different body"
+        http_status = 422
+        description = f"The Idempotency-Key {idempotency_key} was already used with a different request."
+        translation = "Esta chave de idempotência já foi usada com outro pedido."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class DocumentNotFound(QIException):
+    code = "QIT002014"
+
+    def __init__(self, document_key) -> None:
+        title = "Document not found"
+        http_status = 404
+        description = f"There is no document with the key {document_key}."
+        translation = "Documento não encontrado."
+        super().__init__(title, self.code, http_status, description, translation)

@@ -1,1 +1,2 @@
 from connectors.bureau_connector import BureauConnector
+from connectors.document_analysis_connector import DocumentAnalysisConnector

@@ -11,7 +11,10 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 
 BUREAU_URL = os.environ.get("BUREAU_URL", "http://localhost:1080")
-BUREAU_TIMEOUT = int(os.environ.get("BUREAU_TIMEOUT", "5"))
+DOCUMENT_ANALYSIS_URL = os.environ.get("DOCUMENT_ANALYSIS_URL", "http://localhost:1080")
+
+# Toda chamada para fora tem prazo. Sem prazo, um serviço lento prende este.
+SERVICE_TIMEOUT = int(os.environ.get("SERVICE_TIMEOUT", "5"))
 
 BYPASS_ENDPOINTS = [
     "/",

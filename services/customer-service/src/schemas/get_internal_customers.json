@@ -1,0 +1,28 @@
+{
+  "title": "GetInternalCustomers",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "phone": {
+      "type": "string",
+      "pattern": "^\\d{10,11}$"
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "email"
+      ]
+    },
+    {
+      "required": [
+        "phone"
+      ]
+    }
+  ],
+  "additionalProperties": false
+}

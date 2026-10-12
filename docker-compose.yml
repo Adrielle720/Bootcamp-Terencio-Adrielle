@@ -1,7 +1,11 @@
+# Sobe tudo com um comando: docker compose up -d
+# Mudou um database.sql? docker compose down -v (o banco só roda o .sql ao nascer).
+# Mudou um requirements.txt? docker compose build --no-cache.
+
 x-common-env: &common-env
   APP_ENV: ${APP_ENV:-local}
-  DATABASE_URL: postgresql+psycopg2://bootcamp:bootcamp@db:5432/bootcamp
   INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
+  SERVICE_TIMEOUT: ${SERVICE_TIMEOUT:-5}
 
 x-service-healthcheck: &service-healthcheck
   test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:3000/health_check\")'"]
@@ -10,33 +14,50 @@ x-service-healthcheck: &service-healthcheck
   retries: 20
   start_period: 5s
 
-x-service-base: &service-base
-  depends_on:
-    db:
-      condition: service_healthy
+x-db-base: &db-base
+  image: postgres:16
+  environment:
+    POSTGRES_USER: bootcamp
+    POSTGRES_PASSWORD: bootcamp
+    POSTGRES_DB: bootcamp
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U bootcamp -d bootcamp"]
+    interval: 3s
+    timeout: 3s
+    retries: 20
 
 services:
-  db:
-    build: ./database
-    environment:
-      POSTGRES_USER: bootcamp
-      POSTGRES_PASSWORD: bootcamp
-      POSTGRES_DB: bootcamp
+  customer-db:
+    <<: *db-base
+    volumes:
+      - ./services/customer-service/database/database.sql:/docker-entrypoint-initdb.d/01.sql:ro
+      - customer-data:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT:-5544}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bootcamp -d bootcamp"]
-      interval: 3s
-      timeout: 3s
-      retries: 20
+      - "${CUSTOMER_DB_PORT:-5545}:5432"
 
-  mockserver:
+  account-db:
+    <<: *db-base
+    volumes:
+      - ./services/account-service/database/database.sql:/docker-entrypoint-initdb.d/01.sql:ro
+      - account-data:/var/lib/postgresql/data
+    ports:
+      - "${ACCOUNT_DB_PORT:-5546}:5432"
+
+  transaction-db:
+    <<: *db-base
+    volumes:
+      - ./services/transaction-service/database/database.sql:/docker-entrypoint-initdb.d/01.sql:ro
+      - transaction-data:/var/lib/postgresql/data
+    ports:
+      - "${TRANSACTION_DB_PORT:-5547}:5432"
+
+  # Simula os serviços de fora: o birô (/bureau) e a análise de documentos (/document-analysis).
+  mock:
     image: mockserver/mockserver:5.15.0
     ports:
       - "${MOCKSERVER_PORT:-1080}:1080"
 
   customer-service:
-    <<: *service-base
     build:
       context: ./services/customer-service
       target: api
@@ -45,17 +66,17 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: customer-service
-      BUREAU_URL: http://mockserver:1080
-      BUREAU_TIMEOUT: 2
+      DATABASE_URL: postgresql+psycopg2://bootcamp:bootcamp@customer-db:5432/bootcamp
+      BUREAU_URL: http://mock:1080
+      DOCUMENT_ANALYSIS_URL: http://mock:1080
     depends_on:
-      db:
+      customer-db:
         condition: service_healthy
-      mockserver:
+      mock:
         condition: service_started
     healthcheck: *service-healthcheck
 
   account-service:
-    <<: *service-base
     build:
       context: ./services/account-service
       target: api
@@ -64,10 +85,15 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: account-service
+      DATABASE_URL: postgresql+psycopg2://bootcamp:bootcamp@account-db:5432/bootcamp
+      CUSTOMER_SERVICE_URL: http://customer-service:3000
+      TRANSACTION_SERVICE_URL: http://transaction-service:3000
+    depends_on:
+      account-db:
+        condition: service_healthy
     healthcheck: *service-healthcheck
 
   transaction-service:
-    <<: *service-base
     build:
       context: ./services/transaction-service
       target: api
@@ -76,10 +102,15 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: transaction-service
+      DATABASE_URL: postgresql+psycopg2://bootcamp:bootcamp@transaction-db:5432/bootcamp
+      ACCOUNT_SERVICE_URL: http://account-service:3000
+    depends_on:
+      transaction-db:
+        condition: service_healthy
     healthcheck: *service-healthcheck
 
+  # Sem banco: monta o extrato perguntando ao account-service e ao transaction-service.
   statement-service:
-    <<: *service-base
     build:
       context: ./services/statement-service
       target: api
@@ -88,4 +119,11 @@ services:
     environment:
       <<: *common-env
       SERVICE_NAME: statement-service
+      ACCOUNT_SERVICE_URL: http://account-service:3000
+      TRANSACTION_SERVICE_URL: http://transaction-service:3000
     healthcheck: *service-healthcheck
+
+volumes:
+  customer-data:
+  account-data:
+  transaction-data:
