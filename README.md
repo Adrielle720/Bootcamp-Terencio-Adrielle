@@ -4,7 +4,8 @@ Um banco só de contas conjuntas, para grupos que dividem despesas: de 2 a 6
 titulares por conta, uma conta por pessoa, convites por e-mail ou celular,
 depósito gratuito, transferência com tarifa por faixa e extrato como livro de
 registros. A especificação completa está na RFC do time:
-[docs/RFC-Banco-de-contas-conjuntas.pdf](docs/RFC-Banco-de-contas-conjuntas.pdf).
+[docs/RFC-Banco-de-contas-conjuntas.pdf](docs/RFC-Banco-de-contas-conjuntas.pdf)
+(o texto-fonte, editável, está em [docs/RFC-Banco-de-contas-conjuntas.md](docs/RFC-Banco-de-contas-conjuntas.md)).
 
 ## Subir e testar
 

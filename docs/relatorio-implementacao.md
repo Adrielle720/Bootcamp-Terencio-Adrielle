@@ -78,12 +78,13 @@ Também implementado, sem teste dedicado:
 
 **Inconsistências dentro da própria RFC**
 
-Nos itens 26 a 28 o time decidiu (12/10) que vale o que o código faz. A RFC
-deve ser corrigida nesses trechos.
+Nos itens 26 a 28 o time decidiu (12/10) que vale o que o código faz, e a RFC
+já foi corrigida nesses trechos (linha "Revisão" no cabeçalho dela, em
+[RFC-Banco-de-contas-conjuntas.md](RFC-Banco-de-contas-conjuntas.md) e no PDF).
 
-26. **Decidido: `transfer_key`.** A tabela de rotas diz `transfer_key`, mas o passo 10 do fluxo "Transferir" e a tabela de testes ("o mesmo transaction_key") dizem `transaction_key`. A resposta da transferência usa `transfer_key`. No extrato, cada item continua usando `transaction_key`, porque pode ser depósito ou transferência. Corrigir na RFC: passo 10 do fluxo "Transferir" e a linha "Idempotência" da tabela de testes.
-27. **Decidido: a cópia é feita no aceite.** O "Principal desafio" diz que nome, CPF e nascimento são "copiados no convite"; as regras de titulares e o fluxo do aceite dizem "no aceite". O código copia no aceite (e na abertura, para o master), porque no convite a pessoa pode ainda não ser cliente. Corrigir na RFC: o "Principal desafio" da transferência.
-28. **Decidido: a transferência trava três saldos.** O passo 5 diz "trava os dois saldos", e o passo 9 grava três. O código trava origem, destino e receitas, em ordem crescente de id, porque o saldo de receitas também muda no mesmo commit. Corrigir na RFC: o passo 5 do fluxo "Transferir".
+26. **Decidido: `transfer_key`.** A tabela de rotas diz `transfer_key`, mas o passo 10 do fluxo "Transferir" e a tabela de testes ("o mesmo transaction_key") dizem `transaction_key`. A resposta da transferência usa `transfer_key`. No extrato, cada item continua usando `transaction_key`, porque pode ser depósito ou transferência. Corrigido na RFC: passo 10 do fluxo "Transferir", diagrama da transferência e linha "Idempotência" da tabela de testes.
+27. **Decidido: a cópia é feita no aceite.** O "Principal desafio" diz que nome, CPF e nascimento são "copiados no convite"; as regras de titulares e o fluxo do aceite dizem "no aceite". O código copia no aceite (e na abertura, para o master), porque no convite a pessoa pode ainda não ser cliente. Corrigido na RFC: o "Principal desafio" da transferência.
+28. **Decidido: a transferência trava três saldos.** O passo 5 diz "trava os dois saldos", e o passo 9 grava três. O código trava origem, destino e receitas, em ordem crescente de id, porque o saldo de receitas também muda no mesmo commit. Corrigido na RFC: o passo 5 do fluxo "Transferir", o diagrama da transferência e o "Principal desafio".
 29. A RFC diz que o `conftest.py` guarda as funções que criam clientes e contas prontas. Elas estão em `tests/utils/` (customer_utils, account_utils, minor_utils), e o `conftest.py` cuida da espera pelos serviços.
 
 **Processo**
