@@ -1,5 +1,9 @@
 import os
 
+from dotenv import load_dotenv
+
+# O .env é opcional: sem ele, valem os mesmos padrões do docker-compose.yml.
+load_dotenv()
 
 SERVICES = {
     "customer-service": os.environ.get("CUSTOMER_URL", "http://localhost:8001"),
