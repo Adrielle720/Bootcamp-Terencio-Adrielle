@@ -1,3 +1,5 @@
 from resources.account import AccountResource
 from resources.account_holder import AccountHolderResource
+from resources.guardianship import GuardianshipResource
 from resources.health_check import HealthCheckResource
+from resources.internal import InternalAccountResource

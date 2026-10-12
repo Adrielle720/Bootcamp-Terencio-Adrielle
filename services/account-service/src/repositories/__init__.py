@@ -1,2 +1,3 @@
 from repositories.account_repository import AccountRepository
+from repositories.guardianship_repository import GuardianshipRepository
 from repositories.idempotency_repository import IdempotencyRepository

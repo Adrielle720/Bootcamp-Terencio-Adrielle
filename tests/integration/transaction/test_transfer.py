@@ -8,6 +8,8 @@
 # - mesma conta -> 422 QIT002043
 # - saldo insuficiente para valor e tarifa -> 422 QIT002046
 # - ledger: tarifa vai para a conta de receitas, depósito sai da conta de liquidação
+# - os lançamentos de cada operação somam zero
+# - número inexistente e CPF de não titular dão respostas idênticas
 import requests
 
 from utils.account_utils import abrir_conta, consultar_conta, criar_conta_ativa, depositar, transferir
@@ -154,3 +156,46 @@ def test_saldo_que_cobre_o_valor_mas_nao_a_tarifa_devolve_422_qit002046():
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "QIT002046"
+
+
+def _lancamentos(conta, transaction_key):
+    resposta = requests.get(f"{SERVICES['statement-service']}/accounts/{conta['account_key']}/transactions/{transaction_key}",
+                            params={"customer_key": conta["master"]["customer_key"]}, headers=HEADERS)
+    return sum(lancamento["amount_cents"] for lancamento in resposta.json()["entries"])
+
+
+def test_lancamentos_de_deposito_e_transferencia_somam_zero():
+    origem = criar_conta_ativa()
+    destino = criar_conta_ativa()
+    antes = _saldos_da_instituicao()
+
+    deposito = depositar(origem, 50000).json()
+    depois_do_deposito = _saldos_da_instituicao()
+    transferencia = transferir(origem, destino, 10000).json()
+    depois_da_transferencia = _saldos_da_instituicao()
+
+    liquidacao = depois_do_deposito["settlement_cents"] - antes["settlement_cents"]
+    assert _lancamentos(origem, deposito["deposit_key"]) + liquidacao == 0
+    receitas = depois_da_transferencia["fee_revenue_cents"] - depois_do_deposito["fee_revenue_cents"]
+    debito = _lancamentos(origem, transferencia["transfer_key"])
+    credito = _lancamentos(destino, transferencia["transfer_key"])
+    assert (debito, credito, receitas) == (-10200, 10000, 200)
+    assert debito + credito + receitas == 0
+
+
+def test_numero_inexistente_e_cpf_de_nao_titular_dao_respostas_identicas():
+    origem = criar_conta_ativa()
+    destino = criar_conta_ativa()
+    depositar(origem, 50000).raise_for_status()
+
+    numero_inexistente = transferir(origem, destino, 1000, numero_destino="12345678-" + _dv("12345678"))
+    cpf_de_fora = transferir(origem, destino, 1000, cpf_destino=cadastrar_cliente(aprovado=False)["document_number"])
+
+    assert numero_inexistente.status_code == cpf_de_fora.status_code == 404
+    assert numero_inexistente.json() == cpf_de_fora.json()
+
+
+def _dv(corpo):
+    total = sum(int(digito) * peso for digito, peso in zip(corpo, [2, 3, 4, 5, 6, 7, 8, 9]))
+    resto = total % 11
+    return str(0 if resto < 2 else 11 - resto)

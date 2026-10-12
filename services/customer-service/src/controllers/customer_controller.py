@@ -53,13 +53,13 @@ class CustomerController(BaseController):
 
         bureau_data = self._consult_bureau(document_number)
 
-        customer = self.customer_repository.create(customer_data=customer_data)
-        self.customer_repository.add_analysis(customer, "BUREAU_CPF", bureau_data["status"], bureau_data)
-        response = {"customer_key": customer.customer_key, "status": "PENDING_DOCUMENTS"}
-        if idempotency_key is not None:
-            self.idempotency_repository.save(IDEMPOTENCY_SCOPE, idempotency_key, body_hash, 201, response)
-
         try:
+            customer = self.customer_repository.create(customer_data=customer_data)
+            self.customer_repository.add_analysis(customer, "BUREAU_CPF", bureau_data["status"], bureau_data)
+            response = {"customer_key": customer.customer_key, "status": "PENDING_DOCUMENTS"}
+            if idempotency_key is not None:
+                self.idempotency_repository.save(IDEMPOTENCY_SCOPE, idempotency_key, body_hash, 201, response)
+
             self.session.commit()
         except IntegrityError:
             # Dois pedidos iguais ao mesmo tempo: os dois passaram pela

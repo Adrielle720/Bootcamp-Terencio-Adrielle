@@ -1,3 +1,3 @@
 from controllers.deposit_controller import DepositController
-from controllers.institution_controller import InstitutionController
+from controllers.internal_controller import InternalController
 from controllers.transfer_controller import TransferController

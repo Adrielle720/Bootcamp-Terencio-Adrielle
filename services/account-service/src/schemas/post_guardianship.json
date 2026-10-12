@@ -1,0 +1,19 @@
+{
+  "title": "PostGuardianship",
+  "type": "object",
+  "properties": {
+    "customer_key": {"$ref": "definitions.json#/definitions/customer_key"},
+    "minor_account_holder_key": {"$ref": "definitions.json#/definitions/customer_key"},
+    "kinship_degree": {
+      "enum": ["MOTHER", "FATHER", "GRANDPARENT", "SIBLING", "UNCLE_AUNT", "LEGAL_GUARDIAN"]
+    },
+    "document_keys": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {"$ref": "definitions.json#/definitions/customer_key"}
+    }
+  },
+  "required": ["customer_key", "minor_account_holder_key", "kinship_degree", "document_keys"],
+  "additionalProperties": false
+}

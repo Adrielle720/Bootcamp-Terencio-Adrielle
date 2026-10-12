@@ -3,6 +3,7 @@
 import pytest
 
 from utils.account_utils import criar_conta_ativa, criar_conta_com_titulares, depositar, transferir
+from utils.minor_utils import aprovar_guarda_da_mae, conta_com_menor
 
 
 @pytest.mark.parametrize("valor, adultos, tarifa_esperada", [
@@ -30,3 +31,16 @@ def test_tarifa_segue_faixa_e_adultos_ativos(valor, adultos, tarifa_esperada):
     assert resposta.status_code == 201
     assert resposta.json()["fee_cents"] == tarifa_esperada
     assert resposta.json()["total_cents"] == valor + tarifa_esperada
+
+
+def test_menor_nao_aumenta_a_tarifa_mas_paga_quando_transfere():
+    conta = conta_com_menor()
+    aprovar_guarda_da_mae(conta)
+    depositar(conta, 100000).raise_for_status()
+
+    do_master = transferir(conta, criar_conta_ativa(), 50000)
+    do_menor = transferir(conta, criar_conta_ativa(), 10000, quem=conta["menor"])
+
+    # Um adulto ativo e um menor: máx(0, 1 − 2) = 0, só a base da faixa.
+    assert do_master.json()["fee_cents"] == 500
+    assert do_menor.json()["fee_cents"] == 200

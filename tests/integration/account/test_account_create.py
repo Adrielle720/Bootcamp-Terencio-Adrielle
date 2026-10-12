@@ -3,16 +3,22 @@
 # - convidado que ainda não é cliente -> 201, o convite guarda o contato
 # - master inexistente -> 404 QIT002010
 # - master com menos de 18 anos -> 422 QIT002021
+# - master sem documentos aprovados -> 422 QIT002033
+# - mesma Idempotency-Key -> mesma conta
 # - master, ou convidado já cliente, com conta ou convite -> 409 QIT002022
 # - contato que não é cliente e já tem convite pendente -> 409 QIT002032
 # - convite a si mesmo ou repetido -> 422 QIT002024
 # - convite sem e-mail nem celular -> 400 QIT000001
 from datetime import date
 import re
+import uuid
+
+import requests
 
 from utils.account_utils import abrir_conta, consultar_conta
 from utils.customer_utils import cadastrar_cliente
 from utils.generators import gerar_email, gerar_telefone
+from utils.settings import HEADERS, SERVICES
 
 NUMERO_DA_CONTA = re.compile(r"^\d{8}-\d$")
 
@@ -115,3 +121,25 @@ def test_convite_sem_email_nem_celular_devolve_400_qit000001():
 
     assert resposta.status_code == 400
     assert resposta.json()["code"] == "QIT000001"
+
+
+def test_master_sem_documentos_aprovados_devolve_422_qit002033():
+    master = cadastrar_cliente(aprovado=False)
+
+    resposta = abrir_conta(master, [{"phone": gerar_telefone()}])
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002033"
+
+
+def test_mesma_chave_de_idempotencia_devolve_a_mesma_conta():
+    master = cadastrar_cliente()
+    corpo = {"customer_key": master["customer_key"], "name": "Casa", "invites": [{"phone": gerar_telefone()}]}
+    headers = {**HEADERS, "Idempotency-Key": str(uuid.uuid4())}
+
+    primeira = requests.post(f"{SERVICES['account-service']}/accounts", json=corpo, headers=headers)
+    repetida = requests.post(f"{SERVICES['account-service']}/accounts", json=corpo, headers=headers)
+
+    assert primeira.status_code == 201
+    assert repetida.status_code == 201
+    assert repetida.json() == primeira.json()

@@ -2,6 +2,8 @@
 # - depósito, transferência enviada e recebida, da mais recente para a mais antiga, com resumo
 # - paginação: limit, page, is_last_page
 # - filtros: tipo, sentido, titular e período
+# - a soma dos itens bate com o saldo, e transferência recusada não aparece
+# - start_date depois de end_date ou data impossível -> 400 QIT000001
 # - quem não é titular ativo -> 404 QIT002020
 # - limit acima de 100 ou parâmetro desconhecido -> 400 QIT000001
 # - detalhe de uma operação com os lançamentos -> 200; operação de outra conta -> 404 QIT002050
@@ -149,3 +151,27 @@ def test_operacao_de_outra_conta_devolve_404_qit002050():
 
     assert resposta.status_code == 404
     assert resposta.json()["code"] == "QIT002050"
+
+
+def test_soma_dos_itens_bate_com_o_saldo_e_recusada_nao_aparece():
+    conta, outra, *_ = _conta_com_movimento()
+    recusada = transferir(conta, outra, 10000000)
+
+    extrato = _extrato(conta, limit=100).json()
+
+    assert recusada.status_code == 422
+    assert len(extrato["data"]) == 3
+    soma = sum(item["amount_cents"] if item["direction"] == "IN" else -item["total_cents"] for item in extrato["data"])
+    assert soma == extrato["summary"]["balance_cents"]
+
+
+def test_periodo_invertido_ou_data_impossivel_devolve_400_qit000001():
+    conta = criar_conta_ativa()
+
+    invertido = _extrato(conta, start_date="2026-10-10", end_date="2026-10-01")
+    impossivel = _extrato(conta, start_date="2026-02-30")
+
+    assert invertido.status_code == 400
+    assert invertido.json()["code"] == "QIT000001"
+    assert impossivel.status_code == 400
+    assert impossivel.json()["code"] == "QIT000001"

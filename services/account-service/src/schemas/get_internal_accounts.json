@@ -1,0 +1,10 @@
+{
+  "title": "GetInternalAccounts",
+  "type": "object",
+  "properties": {
+    "number": {"type": "string", "pattern": "^[0-9]{8}-[0-9]$"},
+    "document_number": {"type": "string", "pattern": "^\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}$"}
+  },
+  "required": ["number", "document_number"],
+  "additionalProperties": false
+}

@@ -9,7 +9,13 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import AccountHolderResource, AccountResource, HealthCheckResource
+from resources import (
+    AccountHolderResource,
+    AccountResource,
+    GuardianshipResource,
+    HealthCheckResource,
+    InternalAccountResource,
+)
 from utils.logger import setup_logging
 
 
@@ -44,6 +50,14 @@ def create_app() -> FastAPI:
     application.add_api_route("/account-holders/{account_holder_key}/decline", holder_resource.on_put_decline, methods=["PUT"])
     application.add_api_route("/account-holders/{account_holder_key}/cancel", holder_resource.on_put_cancel, methods=["PUT"])
     application.add_api_route("/account-holders/{account_holder_key}/monthly-limit", holder_resource.on_put_monthly_limit, methods=["PUT"])
+
+    guardianship_resource = GuardianshipResource()
+    application.add_api_route("/accounts/{account_key}/guardianships", guardianship_resource.on_post, methods=["POST"])
+    application.add_api_route("/guardianships/{guardianship_key}", guardianship_resource.on_get, methods=["GET"])
+
+    internal_resource = InternalAccountResource()
+    application.add_api_route("/internal/accounts", internal_resource.on_get_destination, methods=["GET"])
+    application.add_api_route("/internal/accounts/{account_key}/context", internal_resource.on_get_context, methods=["GET"])
 
     register_error_handlers(application)
 

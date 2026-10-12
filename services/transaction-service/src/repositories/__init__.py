@@ -1,1 +1,3 @@
+from repositories.idempotency_repository import IdempotencyRepository
+from repositories.statement_repository import StatementRepository
 from repositories.transaction_repository import TransactionRepository

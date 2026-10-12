@@ -109,3 +109,25 @@ class MonthlyLimitExceeded(QIException):
         description = f"The amount and fee exceed the monthly limit of this minor in the account {account_key}."
         translation = "O valor ultrapassa o limite mensal definido pelo master para este titular."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class TransactionNotFound(QIException):
+    code = "QIT002050"
+
+    def __init__(self, transaction_key) -> None:
+        title = "Transaction not found"
+        http_status = 404
+        description = f"There is no transaction {transaction_key} in this account."
+        translation = "Operação não encontrada nesta conta."
+        super().__init__(title, self.code, http_status, description, translation)
+
+
+class ServiceUnavailable(QIException):
+    code = "QIT002090"
+
+    def __init__(self, service_name) -> None:
+        title = "Dependent service unavailable"
+        http_status = 503
+        description = f"The {service_name} did not respond in time. Nothing was recorded; retry with the same key."
+        translation = "Um serviço interno não respondeu. Nada foi gravado; tente de novo."
+        super().__init__(title, self.code, http_status, description, translation)

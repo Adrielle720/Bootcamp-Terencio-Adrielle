@@ -1,195 +1,170 @@
+from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import func, text
+from sqlalchemy import func, or_, text
 
+from constants import FEE_REVENUE_ACCOUNT_KEY, SETTLEMENT_ACCOUNT_KEY
 from database import Context
 from models import (
-    Account,
     AccountBalance,
-    AccountHolder,
-    AccountStatus,
-    Customer,
+    BalanceType,
     Deposit,
-    HolderStatus,
+    EntryType,
+    FeeTier,
     LedgerEntry,
+    Notification,
+    NotificationType,
     Transfer,
 )
-from utils.age import is_adult
-
-# As duas contas da instituição, criadas no database.sql.
-FEE_REVENUE_ACCOUNT_KEY = "00000000-0000-0000-0000-000000000001"
-SETTLEMENT_ACCOUNT_KEY = "00000000-0000-0000-0000-000000000002"
 
 # O mês do limite do menor é o do calendário em São Paulo. created_at é
-# gravado em UTC (o NOW() do Postgres no container), por isso a conversão.
+# gravado em UTC, por isso a conversão dos dois lados.
 SAO_PAULO_MONTH_FILTER = text(
-    "(transfer.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') "
+    "(transfers.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') "
     ">= date_trunc('month', NOW() AT TIME ZONE 'America/Sao_Paulo')"
 )
+
+
+def utc_now() -> datetime:
+    """O instante em UTC, sem fuso, como as colunas TIMESTAMP guardam."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class TransactionRepository:
     def __init__(self, context: Context) -> None:
         self.session = context.db_session
-        self._status_ids = {}
-
-    # ── contas e titulares ─────────────────────────────────────────────
-
-    def get_customer_account_by_key(self, account_key: str) -> Account:
-        return self.session.query(Account).filter(
-            Account.account_key == account_key,
-            Account.is_institution.is_(False),
-        ).first()
-
-    def get_customer_account_by_number(self, account_number: str) -> Account:
-        return self.session.query(Account).filter(
-            Account.account_number == account_number,
-            Account.is_institution.is_(False),
-        ).first()
-
-    def get_institution_account(self, account_key: str) -> Account:
-        return self.session.query(Account).filter(Account.account_key == account_key).one()
-
-    def get_customer_by_key(self, customer_key: str) -> Customer:
-        return self.session.query(Customer).filter(Customer.customer_key == customer_key).first()
-
-    def get_customer_by_document(self, document_number: str) -> Customer:
-        return self.session.query(Customer).filter(Customer.document_number == document_number).first()
-
-    def get_active_holder(self, account: Account, customer: Customer) -> AccountHolder:
-        if account is None or customer is None:
-            return None
-        return self.session.query(AccountHolder).filter(
-            AccountHolder.account_id == account.id,
-            AccountHolder.customer_id == customer.id,
-            AccountHolder.status_id == self._status_id(HolderStatus, "ACTIVE"),
-        ).first()
-
-    def count_active_adults(self, account: Account) -> int:
-        birthdates = (
-            self.session.query(Customer.birthdate)
-            .join(AccountHolder, AccountHolder.customer_id == Customer.id)
-            .filter(
-                AccountHolder.account_id == account.id,
-                AccountHolder.status_id == self._status_id(HolderStatus, "ACTIVE"),
-            )
-            .all()
-        )
-        return sum(1 for (birthdate,) in birthdates if is_adult(birthdate))
-
-    def account_status(self, account: Account) -> str:
-        return self.session.query(AccountStatus.enumerator).filter(AccountStatus.id == account.status_id).scalar()
-
-    # ── idempotência ───────────────────────────────────────────────────
-
-    def get_deposit_by_idempotency(self, account: Account, idempotency_key: str) -> Deposit:
-        return self.session.query(Deposit).filter(
-            Deposit.account_id == account.id,
-            Deposit.idempotency_key == idempotency_key,
-        ).first()
-
-    def get_transfer_by_idempotency(self, origin: Account, idempotency_key: str) -> Transfer:
-        return self.session.query(Transfer).filter(
-            Transfer.origin_account_id == origin.id,
-            Transfer.idempotency_key == idempotency_key,
-        ).first()
+        self._ids = {}
 
     # ── saldos ─────────────────────────────────────────────────────────
 
-    def lock_balances(self, accounts: list) -> None:
-        """Trava os saldos sempre do menor id para o maior.
+    def lock_balances(self, account_keys: list) -> dict:
+        """Cria os saldos que faltam e trava todos, sempre do menor id para o maior.
 
-        Duas transferências cruzadas (A→B e B→A) travam na mesma ordem, e
-        a segunda espera a primeira em vez de as duas esperarem uma pela
-        outra para sempre. O saldo que ainda não existe nasce zerado antes
-        de ser travado, para haver uma linha a travar.
+        Duas transferências cruzadas (A→B e B→A) travam na mesma ordem, e a
+        segunda espera a primeira em vez de as duas esperarem uma pela outra
+        para sempre. Devolve os saldos travados, por account_key.
         """
-        account_ids = sorted({account.id for account in accounts})
-        for account_id in account_ids:
+        customer_type = self.domain_id(BalanceType, "CUSTOMER")
+        for account_key in set(account_keys):
             self.session.execute(text(
-                "INSERT INTO account_balance (account_id, balance_cents) VALUES (:account_id, 0) "
-                "ON CONFLICT (account_id) DO NOTHING"
-            ), {"account_id": account_id})
-            self.session.query(AccountBalance).filter(AccountBalance.account_id == account_id).with_for_update().one()
+                "INSERT INTO account_balances (account_key, balance_type_id, balance_cents) "
+                "VALUES (:account_key, :balance_type_id, 0) ON CONFLICT (account_key) DO NOTHING"
+            ), {"account_key": account_key, "balance_type_id": customer_type})
 
-    def get_balance(self, account: Account) -> int:
-        balance = self.session.query(AccountBalance.balance_cents).filter(AccountBalance.account_id == account.id).scalar()
+        balances = (
+            self.session.query(AccountBalance)
+            .filter(AccountBalance.account_key.in_(set(account_keys)))
+            .order_by(AccountBalance.id)
+            .with_for_update()
+            .all()
+        )
+        return {balance.account_key: balance for balance in balances}
+
+    def get_balance(self, account_key: str) -> int:
+        balance = self.session.query(AccountBalance.balance_cents).filter(
+            AccountBalance.account_key == account_key).scalar()
         return balance if balance is not None else 0
 
-    def minor_spent_this_month(self, origin: Account, requester: Customer) -> int:
+    def institution_balances(self) -> dict:
+        return {
+            "fee_revenue_cents": self.get_balance(FEE_REVENUE_ACCOUNT_KEY),
+            "settlement_cents": self.get_balance(SETTLEMENT_ACCOUNT_KEY),
+        }
+
+    # ── regras de dinheiro ─────────────────────────────────────────────
+
+    def base_fee_for(self, amount_cents: int) -> int:
+        tier = self.session.query(FeeTier).filter(
+            FeeTier.min_amount_cents <= amount_cents,
+            or_(FeeTier.max_amount_cents.is_(None), FeeTier.max_amount_cents >= amount_cents),
+        ).first()
+        return tier.base_fee_cents
+
+    def spent_this_month(self, origin_account_key: str, requester_customer_key: str) -> int:
         spent = self.session.query(func.coalesce(func.sum(Transfer.amount_cents + Transfer.fee_cents), 0)).filter(
-            Transfer.origin_account_id == origin.id,
-            Transfer.requested_by_id == requester.id,
+            Transfer.origin_account_key == origin_account_key,
+            Transfer.requester_customer_key == requester_customer_key,
             SAO_PAULO_MONTH_FILTER,
         ).scalar()
         return int(spent)
 
     # ── operações ──────────────────────────────────────────────────────
 
-    def create_deposit(self, account: Account, customer: Customer, amount_cents: int,
-                       idempotency_key: str, request_hash: str) -> Deposit:
+    def create_deposit(self, balances: dict, context: dict, amount_cents: int) -> Deposit:
+        now = utc_now()
         deposit = Deposit()
         deposit.deposit_key = str(uuid4())
-        deposit.account_id = account.id
-        deposit.customer_id = customer.id
+        deposit.account_key = context["account_key"]
+        deposit.depositor_customer_key = context["requester"]["customer_key"]
+        deposit.depositor_name = context["requester"]["name"]
         deposit.amount_cents = amount_cents
-        deposit.idempotency_key = idempotency_key
-        deposit.request_hash = request_hash
+        deposit.created_at = now
         self.session.add(deposit)
         self.session.flush()
 
-        settlement = self.get_institution_account(SETTLEMENT_ACCOUNT_KEY)
-        self._post(settlement, "SETTLEMENT_DEBIT", -amount_cents, deposit_id=deposit.id)
-        self._post(account, "DEPOSIT_CREDIT", amount_cents, deposit_id=deposit.id)
-
+        self._post(balances[SETTLEMENT_ACCOUNT_KEY], "SETTLEMENT_DEBIT", -amount_cents, now, deposit_id=deposit.id)
+        self._post(balances[context["account_key"]], "DEPOSIT_CREDIT", amount_cents, now, deposit_id=deposit.id)
         return deposit
 
-    def create_transfer(self, origin: Account, destination: Account, requester: Customer,
-                        verified_holder: AccountHolder, amount_cents: int, fee_cents: int,
-                        adult_count: int, idempotency_key: str, request_hash: str) -> Transfer:
+    def create_transfer(self, balances: dict, origin: dict, destination: dict, amount_cents: int,
+                        fee_cents: int) -> Transfer:
+        now = utc_now()
         transfer = Transfer()
         transfer.transfer_key = str(uuid4())
-        transfer.origin_account_id = origin.id
-        transfer.destination_account_id = destination.id
-        transfer.requested_by_id = requester.id
-        transfer.verified_holder_id = verified_holder.id
+        transfer.origin_account_key = origin["account_key"]
+        transfer.destination_account_key = destination["account_key"]
+        transfer.requester_customer_key = origin["requester"]["customer_key"]
+        transfer.requester_name = origin["requester"]["name"]
+        transfer.origin_account_number = origin["account_number"]
+        transfer.destination_account_number = destination["account_number"]
+        transfer.verified_holder_name = destination["verified_holder"]["name"]
         transfer.amount_cents = amount_cents
         transfer.fee_cents = fee_cents
-        transfer.adult_count = adult_count
-        transfer.idempotency_key = idempotency_key
-        transfer.request_hash = request_hash
+        transfer.adult_count = origin["adult_count"]
+        transfer.created_at = now
         self.session.add(transfer)
         self.session.flush()
 
-        revenue = self.get_institution_account(FEE_REVENUE_ACCOUNT_KEY)
-        self._post(origin, "TRANSFER_DEBIT", -amount_cents, transfer_id=transfer.id)
-        self._post(origin, "FEE_DEBIT", -fee_cents, transfer_id=transfer.id)
-        self._post(destination, "TRANSFER_CREDIT", amount_cents, transfer_id=transfer.id)
-        self._post(revenue, "FEE_CREDIT", fee_cents, transfer_id=transfer.id)
-
+        origin_balance = balances[origin["account_key"]]
+        self._post(origin_balance, "TRANSFER_DEBIT", -amount_cents, now, transfer_id=transfer.id)
+        self._post(origin_balance, "FEE_DEBIT", -fee_cents, now, transfer_id=transfer.id)
+        self._post(balances[destination["account_key"]], "TRANSFER_CREDIT", amount_cents, now, transfer_id=transfer.id)
+        self._post(balances[FEE_REVENUE_ACCOUNT_KEY], "FEE_CREDIT", fee_cents, now, transfer_id=transfer.id)
         return transfer
 
-    def institution_balances(self) -> dict:
-        return {
-            "fee_revenue_cents": self.get_balance(self.get_institution_account(FEE_REVENUE_ACCOUNT_KEY)),
-            "settlement_cents": self.get_balance(self.get_institution_account(SETTLEMENT_ACCOUNT_KEY)),
-        }
+    def notify(self, holders: list, account_key: str, notification_type: str, payload: dict) -> None:
+        """Notificação só dentro do app: linhas gravadas no mesmo commit da operação."""
+        type_id = self.domain_id(NotificationType, notification_type)
+        for holder in holders:
+            notification = Notification()
+            notification.notification_key = str(uuid4())
+            notification.customer_key = holder["customer_key"]
+            notification.account_key = account_key
+            notification.notification_type_id = type_id
+            notification.payload = payload
+            self.session.add(notification)
 
-    def _post(self, account: Account, entry_type: str, amount_cents: int, deposit_id: int = None,
-              transfer_id: int = None) -> None:
+    def _post(self, balance: AccountBalance, entry_type: str, amount_cents: int, now: datetime,
+              deposit_id: int = None, transfer_id: int = None) -> None:
         """Um lançamento no ledger e o saldo atualizado, no mesmo commit.
 
-        O saldo só pode mudar por aqui: assim ele é sempre a soma dos
-        lançamentos, e a tabela de saldo existe só para a checagem ser rápida.
+        O saldo só muda por aqui: assim ele é sempre a soma dos lançamentos, e
+        a tabela de saldo existe só para a checagem ser rápida.
         """
-        self.session.add(LedgerEntry(account_id=account.id, deposit_id=deposit_id, transfer_id=transfer_id,
-                                     entry_type=entry_type, amount_cents=amount_cents))
-        balance = self.session.query(AccountBalance).filter(AccountBalance.account_id == account.id).one()
-        balance.balance_cents = balance.balance_cents + amount_cents
-        balance.updated_at = func.now()
+        entry = LedgerEntry()
+        entry.account_balance_id = balance.id
+        entry.deposit_id = deposit_id
+        entry.transfer_id = transfer_id
+        entry.entry_type_id = self.domain_id(EntryType, entry_type)
+        entry.amount_cents = amount_cents
+        entry.created_at = now
+        self.session.add(entry)
 
-    def _status_id(self, model, enumerator: str) -> int:
+        balance.balance_cents = balance.balance_cents + amount_cents
+        balance.updated_at = now
+
+    def domain_id(self, model, enumerator: str) -> int:
         cache_key = (model.__tablename__, enumerator)
-        if cache_key not in self._status_ids:
-            self._status_ids[cache_key] = self.session.query(model.id).filter(model.enumerator == enumerator).scalar()
-        return self._status_ids[cache_key]
+        if cache_key not in self._ids:
+            self._ids[cache_key] = self.session.query(model.id).filter(model.enumerator == enumerator).scalar()
+        return self._ids[cache_key]

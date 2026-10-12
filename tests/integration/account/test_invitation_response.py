@@ -1,6 +1,7 @@
 # Casos de convites: lista, aceite, recusa e cancelamento (RFC):
 # - GET /account-holders lista os convites pela customer_key e pelos contatos da pessoa
 # - quem não era cliente se cadastra com o contato convidado, vê o convite e aceita
+# - convidado sem documentos aprovados não aceita -> 422 QIT002033
 # - aceite -> 200 e conta ACTIVE; aceitar de novo -> 409 QIT002031; convite de outra pessoa -> 404 QIT002030
 # - aceite cancela os outros convites pendentes da pessoa
 # - menor aceita -> papel MINOR, PENDING_GUARDIANSHIP, e não ativa a conta
@@ -177,3 +178,13 @@ def test_cancelar_convite_inexistente_devolve_404_qit002030():
 
     assert resposta.status_code == 404
     assert resposta.json()["code"] == "QIT002030"
+
+
+def test_convidado_sem_documentos_aprovados_nao_aceita_devolve_422_qit002033():
+    convidado = cadastrar_cliente(aprovado=False)
+    _, account_key = _conta_pendente([convidado])
+
+    resposta = aceitar_convite(convidado, account_key)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002033"

@@ -1,5 +1,5 @@
 # Casos da rota GET /customers/{customer_key} (RFC):
-# - cliente cadastrado -> 200 com os dados do cadastro
+# - cliente cadastrado -> 200 com os dados do cadastro, o status e as pendências
 # - cliente inexistente -> 404 QIT002010
 import requests
 
@@ -22,6 +22,8 @@ def test_cliente_cadastrado_devolve_200_com_os_dados():
     assert corpo["birth_date"] == cliente["birth_date"]
     assert corpo["email"] == cliente["email"]
     assert corpo["phone"] == cliente["phone"]
+    assert corpo["status"] == "APPROVED"
+    assert corpo["pendencies"] == []
     assert "id" not in corpo
 
 

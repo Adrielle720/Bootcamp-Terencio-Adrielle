@@ -1,17 +1,19 @@
 # Casos da rota POST /customers (RFC):
-# - cadastro válido -> 201 com customer_key                      [feito]
-# - dígitos do CPF errados -> 422 QIT002001                       [em andamento]
-# - menos de 15 anos -> 422 QIT002002                              [em andamento]
-# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)       [CPF feito; e-mail em andamento]
-# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)  [birô feito]
-# - birô sem resposta -> 502 QIT002009
-# - corpo fora do formato -> 400 QIT000001                          [em andamento]
+# - cadastro válido -> 201 com customer_key, status PENDING_DOCUMENTS
+# - dígitos do CPF errados -> 422 QIT002001
+# - menos de 15 anos -> 422 QIT002002
+# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)
+# - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)
+# - birô sem resposta -> 502 QIT002009, e nenhum cliente criado
+# - mesma Idempotency-Key -> mesma resposta; com outro corpo -> 422 QIT002047
+# - corpo fora do formato -> 400 QIT000001
+import uuid
 from datetime import date
 
 import requests
 
 from utils.generators import customer_payload
-from utils.mock_utils import mock_bureau, mock_bureau_ok
+from utils.mock_utils import mock_bureau, mock_bureau_ok, mock_bureau_unavailable
 from utils.settings import HEADERS, SERVICES
 
 URL = f"{SERVICES['customer-service']}/customers"
@@ -25,6 +27,7 @@ def test_cadastro_valido_devolve_201_com_customer_key():
 
     assert resposta.status_code == 201
     assert "customer_key" in resposta.json()
+    assert resposta.json()["status"] == "PENDING_DOCUMENTS"
 
 
 def test_cpf_com_digitos_verificadores_errados_devolve_422_qit002001():
@@ -94,7 +97,7 @@ def test_cpf_inexistente_no_bureau_devolve_422_qit002006():
 
 def test_cpf_irregular_no_bureau_devolve_422_qit002007():
     payload = customer_payload()
-    mock_bureau(payload, document_status="IRREGULAR")
+    mock_bureau(payload, bureau_status="IRREGULAR")
 
     resposta = requests.post(URL, json=payload, headers=HEADERS)
 
@@ -104,7 +107,7 @@ def test_cpf_irregular_no_bureau_devolve_422_qit002007():
 
 def test_nome_divergente_do_bureau_devolve_422_qit002008():
     payload = customer_payload()
-    mock_bureau(payload, name="Outra Pessoa")
+    mock_bureau(payload, name_match=False)
 
     resposta = requests.post(URL, json=payload, headers=HEADERS)
 
@@ -112,14 +115,43 @@ def test_nome_divergente_do_bureau_devolve_422_qit002008():
     assert resposta.json()["code"] == "QIT002008"
 
 
-def test_birô_sem_resposta_no_prazo_devolve_502_qit002009():
+def test_birô_sem_resposta_no_prazo_devolve_502_qit002009_e_nao_cria_cliente():
     payload = customer_payload()
-    mock_bureau(payload, delay_seconds=4)
+    mock_bureau_unavailable(payload)
 
     resposta = requests.post(URL, json=payload, headers=HEADERS)
+    mock_bureau_ok(payload)
+    segunda_tentativa = requests.post(URL, json=payload, headers=HEADERS)
 
     assert resposta.status_code == 502
     assert resposta.json()["code"] == "QIT002009"
+    assert segunda_tentativa.status_code == 201
+
+
+def test_nascimento_divergente_do_bureau_devolve_422_qit002008():
+    payload = customer_payload()
+    mock_bureau(payload, birth_date_match=False)
+
+    resposta = requests.post(URL, json=payload, headers=HEADERS)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "QIT002008"
+
+
+def test_mesma_chave_de_idempotencia_devolve_o_mesmo_cliente():
+    payload = customer_payload()
+    mock_bureau_ok(payload)
+    chave = {**HEADERS, "Idempotency-Key": str(uuid.uuid4())}
+
+    primeira = requests.post(URL, json=payload, headers=chave)
+    repetida = requests.post(URL, json=payload, headers=chave)
+    outro_corpo = requests.post(URL, json={**payload, "income_cents": 1}, headers=chave)
+
+    assert primeira.status_code == 201
+    assert repetida.status_code == 201
+    assert repetida.json() == primeira.json()
+    assert outro_corpo.status_code == 422
+    assert outro_corpo.json()["code"] == "QIT002047"
 
 
 def test_corpo_fora_do_formato_devolve_400_qit000001():
