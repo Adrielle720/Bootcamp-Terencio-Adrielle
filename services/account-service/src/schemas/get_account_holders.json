@@ -1,0 +1,10 @@
+{
+  "title": "GetAccountHolders",
+  "type": "object",
+  "properties": {
+    "customer_key": {"$ref": "definitions.json#/definitions/customer_key"},
+    "status": {"enum": ["INVITED"]}
+  },
+  "required": ["customer_key"],
+  "additionalProperties": false
+}

@@ -1,0 +1,3 @@
+from resources.account import AccountResource
+from resources.account_holder import AccountHolderResource
+from resources.health_check import HealthCheckResource

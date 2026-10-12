@@ -1,0 +1,9 @@
+{
+  "title": "GetAccount",
+  "type": "object",
+  "properties": {
+    "customer_key": {"$ref": "definitions.json#/definitions/customer_key"}
+  },
+  "required": ["customer_key"],
+  "additionalProperties": false
+}
