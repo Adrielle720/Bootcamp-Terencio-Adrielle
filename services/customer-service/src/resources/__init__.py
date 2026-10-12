@@ -1,2 +1,2 @@
-from resources.customer import CustomerResource
+from resources.customer import CustomerResource, InternalCustomerResource
 from resources.health_check import HealthCheckResource

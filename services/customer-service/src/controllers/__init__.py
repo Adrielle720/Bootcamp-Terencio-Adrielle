@@ -1,1 +1,2 @@
 from controllers.customer_controller import CustomerController
+from controllers.document_controller import DocumentController
