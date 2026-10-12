@@ -34,6 +34,15 @@ class DocumentController(BaseController):
 
         document = self.customer_repository.create_document(customer, document_type, document_data)
         analysis = self._analyze(document_type, document_data["document_number"], customer.document_number)
+
+        # O cliente que ainda junta documentos passa por IN_ANALYSIS a cada
+        # envio (é o diagrama de estados da RFC); quem já foi aprovado ou
+        # rejeitado não muda de estado por mandar outro documento.
+        in_onboarding = self.customer_repository.status_of(customer) == "PENDING_DOCUMENTS"
+        payload = {"document_key": document.document_key, "document_type": document_type}
+        if in_onboarding:
+            self.customer_repository.set_status(customer, "IN_ANALYSIS", "Documento enviado para a análise", payload)
+
         result = analysis["result"]
         self.customer_repository.add_analysis(customer, "DOCUMENT", result, analysis, document=document)
         self.customer_repository.set_document_status(document, result)
@@ -41,13 +50,17 @@ class DocumentController(BaseController):
         if result == "APPROVED":
             self.customer_repository.resolve_pendencies(customer, document_type)
             self.session.flush()
-            self._approve_customer_if_complete(customer)
+            if in_onboarding and not self._approve_customer_if_complete(customer):
+                self.customer_repository.set_status(customer, "PENDING_DOCUMENTS",
+                                                    "Faltam documentos obrigatórios", payload)
         elif result == "PENDING":
             reason = analysis.get("pendency_reason") or "ILLEGIBLE"
             self.customer_repository.add_pendency(document, reason, analysis.get("description"))
-        else:
-            self.customer_repository.set_status(customer, "REJECTED", "Documento reprovado na análise",
-                                                {"document_key": document.document_key})
+            if in_onboarding:
+                self.customer_repository.set_status(customer, "PENDING_DOCUMENTS", "Pendência no documento",
+                                                    {**payload, "pendency_reason": reason})
+        elif self.customer_repository.status_of(customer) != "REJECTED":
+            self.customer_repository.set_status(customer, "REJECTED", "Documento reprovado na análise", payload)
 
         self.session.commit()
 
@@ -58,12 +71,15 @@ class DocumentController(BaseController):
         if customer is None:
             raise CustomerNotFound(customer_key)
 
+        # A lista mostra as pendências abertas; as resolvidas continuam no
+        # banco, com resolved_at (R4), mas já não pedem nada ao cliente.
         documents = [
             document_to_dict(
                 document,
                 self.customer_repository.document_type_of(document),
                 self.customer_repository.document_status_of(document),
-                self.customer_repository.pendencies_of(document),
+                [(pendency, reason) for pendency, reason in self.customer_repository.pendencies_of(document)
+                 if pendency.resolved_at is None],
             )
             for document in self.customer_repository.documents_of(customer)
         ]
@@ -96,12 +112,12 @@ class DocumentController(BaseController):
             raise DocumentAnalysisUnavailable()
         return analysis
 
-    def _approve_customer_if_complete(self, customer) -> None:
+    def _approve_customer_if_complete(self, customer) -> bool:
         """Um documento de identidade (RG ou CNH) e um comprovante de residência aprovados."""
-        if self.customer_repository.status_of(customer) != "PENDING_DOCUMENTS":
-            return
-
         approved = self.customer_repository.approved_document_types(customer)
-        if approved & IDENTITY_DOCUMENTS and "PROOF_OF_ADDRESS" in approved:
-            self.customer_repository.set_status(customer, "APPROVED", "Documentos obrigatórios aprovados",
-                                                {"approved_documents": sorted(approved)})
+        if not (approved & IDENTITY_DOCUMENTS and "PROOF_OF_ADDRESS" in approved):
+            return False
+
+        self.customer_repository.set_status(customer, "APPROVED", "Documentos obrigatórios aprovados",
+                                            {"approved_documents": sorted(approved)})
+        return True

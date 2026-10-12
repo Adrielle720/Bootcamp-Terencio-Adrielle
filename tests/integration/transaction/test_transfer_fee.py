@@ -44,3 +44,17 @@ def test_menor_nao_aumenta_a_tarifa_mas_paga_quando_transfere():
     # Um adulto ativo e um menor: máx(0, 1 − 2) = 0, só a base da faixa.
     assert do_master.json()["fee_cents"] == 500
     assert do_menor.json()["fee_cents"] == 200
+
+
+def test_mesma_tarifa_com_e_sem_menor_na_conta():
+    sem_menor = criar_conta_com_titulares(3)
+    com_menor = conta_com_menor(outros_adultos=2)
+    aprovar_guarda_da_mae(com_menor)
+    depositar(sem_menor, 100000).raise_for_status()
+    depositar(com_menor, 100000).raise_for_status()
+
+    tarifa_sem_menor = transferir(sem_menor, criar_conta_ativa(), 25000).json()["fee_cents"]
+    tarifa_com_menor = transferir(com_menor, criar_conta_ativa(), 25000).json()["fee_cents"]
+
+    # Três adultos nas duas contas: 2,00 + 1 × 0,50. O menor não conta.
+    assert tarifa_sem_menor == tarifa_com_menor == 250

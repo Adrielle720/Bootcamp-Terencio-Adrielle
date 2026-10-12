@@ -141,10 +141,13 @@ def test_transferencia_acima_do_saldo_devolve_422_qit002046():
     depositar(origem, 20000).raise_for_status()
     transferir(origem, destino, 15000).raise_for_status()
 
+    saldos_antes = (_saldo(origem), _saldo(destino))
+
     resposta = transferir(origem, destino, 5000)
 
     assert resposta.status_code == 422
     assert resposta.json()["code"] == "QIT002046"
+    assert (_saldo(origem), _saldo(destino)) == saldos_antes
 
 
 def test_saldo_que_cobre_o_valor_mas_nao_a_tarifa_devolve_422_qit002046():

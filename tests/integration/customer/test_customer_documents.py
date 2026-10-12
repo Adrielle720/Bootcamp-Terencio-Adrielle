@@ -76,7 +76,7 @@ def test_documento_com_pendencia_mostra_o_motivo_e_novo_documento_resolve():
                               headers=HEADERS).json()["data"]
     primeiro = next(d for d in documentos if d["document_number"] == ilegivel)
     assert primeiro["status"] == "PENDING"
-    assert primeiro["pendencies"][0]["resolved_at"] is not None
+    assert primeiro["pendencies"] == []
 
 
 def test_documento_reprovado_deixa_o_cliente_rejeitado():

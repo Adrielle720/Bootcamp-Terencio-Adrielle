@@ -1,7 +1,8 @@
 # Relatório de implementação
 
-Estado do `main` em 12/10/2026. A suíte tem **150 testes de integração**, todos
-verdes, inclusive num clone limpo do GitHub construído sem cache
+Estado do `main` em 12/10/2026, conferido contra a RFC em
+[RFC-Banco-de-contas-conjuntas.pdf](RFC-Banco-de-contas-conjuntas.pdf). A suíte tem
+**153 testes de integração**, todos verdes, inclusive num clone limpo do GitHub construído sem cache
 (`docker compose build --no-cache`, venv novo, `pytest -v`). Depois da suíte, o
 banco do transaction-service foi conferido direto: os lançamentos somam zero,
 cada operação fecha em zero, todo saldo é a soma dos seus lançamentos e nenhum
@@ -20,9 +21,9 @@ python -m venv .venv
 
 | Serviço | Testes | O que cobre |
 | --- | --- | --- |
-| customer-service | 24 | Cadastro com birô (2001 a 2009), idempotência, cadastro concorrente do mesmo CPF, consulta com status e pendências, esteira de documentos (aprovado, pendente com motivo, pendência resolvida por documento novo, reprovado, 2011, 2012, 2013), cliente APPROVED com identidade (RG ou CNH) + comprovante |
-| account-service | 61 | Abertura com convites por e-mail ou celular (inclusive para não clientes), 2010, 2021, 2022, 2024, 2032, 2033, idempotência; consulta da conta com saldo e titulares; convites, aceite, recusa e cancelamento (2025, 2026, 2028, 2030, 2031, 2033); concorrência (mesma pessoa, mesmo contato, última vaga); bloqueio e desbloqueio; limites; guarda de menores (mãe, avó com e sem documento de guarda, documento pendente, 2034 a 2038) |
-| transaction-service | 45 | Depósito (idempotente, 2020, 2026, 2047); transferência com as faixas e fronteiras da tarifa, 2 a 6 adultos, menor que não aumenta a tarifa, receitas e liquidação, soma zero, 2040 a 2047, destino inexistente e CPF de fora com respostas idênticas, concorrência (saldo, mesma chave, transferências cruzadas), limite da conta, limite mensal do menor |
+| customer-service | 25 | Cadastro com birô (2001 a 2009), CPF repetido sem chamar o birô (verify do Mockserver), idempotência, cadastro concorrente do mesmo CPF, consulta com status e pendências, esteira de documentos (aprovado, pendente com motivo, pendência resolvida por documento novo, reprovado, 2011, 2012, 2013), cliente APPROVED com identidade (RG ou CNH) + comprovante |
+| account-service | 62 | Abertura com convites por e-mail ou celular (inclusive para não clientes), 2010, 2021, 2022, 2024, 2032, 2033, idempotência; consulta da conta com saldo e titulares; convites, aceite, recusa e cancelamento (2025, 2026, 2028, 2030, 2031, 2033); concorrência (mesma pessoa, mesmo contato, última vaga); bloqueio e desbloqueio; limites; guarda de menores (mãe, avó com e sem documento de guarda, documento pendente, documento de guarda recusado que cancela o convite do menor, 2034 a 2038) |
+| transaction-service | 46 | Depósito (idempotente, 2020, 2026, 2047); transferência com as faixas e fronteiras da tarifa, 2 a 6 adultos, a mesma tarifa com e sem menor na conta, transferência sem saldo que deixa os dois saldos iguais, receitas e liquidação, soma zero, 2040 a 2047, destino inexistente e CPF de fora com respostas idênticas, concorrência (saldo, mesma chave, transferências cruzadas), limite da conta, limite mensal do menor |
 | statement-service | 11 | Extrato com resumo, ordem, paginação, filtros (tipo, sentido, titular, período), soma dos itens igual ao saldo, transferência recusada fora do extrato, 400 para período inválido, 404 2020, detalhe com lançamentos, 404 2050 |
 | infraestrutura | 9 | `/` e `/health_check` dos quatro serviços e o Mockserver |
 
@@ -61,7 +62,7 @@ Também implementado, sem teste dedicado:
 10. Cancelar convite pedido por quem não é titular ativo da conta dá 404 QIT002030. Limite mensal pedido por quem não é titular ativo dá 404 QIT002020.
 11. Uma conta só com o master e um menor fica ACTIVE quando a guarda é aprovada: o menor ativo ativa a conta pendente.
 12. Guarda da mãe cujo nome não bate com o `mother_name` do menor dá 422 QIT002036, porque a RFC não tem código próprio para isso.
-13. Documentos da guarda: documento inexistente, reprovado, de outra pessoa ou do tipo errado não conta, e o que faltar vira 422 QIT002036. Documento ainda pendente conta, mas deixa a guarda em PENDING_DOCUMENTS. O documento de guarda pode ser do responsável ou do menor.
+13. Documentos da guarda: documento inexistente, de outra pessoa ou do tipo errado não conta, e o que faltar vira 422 QIT002036. Documento ainda pendente deixa a guarda em PENDING_DOCUMENTS. Documento exigido recusado na análise recusa a guarda (REJECTED) e cancela o convite do menor, como no fluxo da avó; se era o último vínculo pendente de uma conta PENDING, a conta é cancelada. O documento de guarda pode ser do responsável ou do menor.
 14. `GET /guardianships/{key}` é visível ao menor, ao responsável e a qualquer titular ativo da conta. Para os outros, 404 QIT002038.
 15. Análise que devolve PENDING sem motivo grava a pendência como ILLEGIBLE. Resultado fora de APPROVED, PENDING ou REJECTED vira 502 QIT002013.
 16. Cliente REJECTED (documento reprovado) não tem caminho de volta.
@@ -71,6 +72,17 @@ Também implementado, sem teste dedicado:
 20. O limite mensal do menor não desconta transferências estornadas, porque o estorno não existe ainda.
 21. Contrato do birô: o CPF vai só com os dígitos no caminho (`/bureau/cpf/12345678909`).
 
+23. Status do cliente: cada documento enviado por quem ainda está em PENDING_DOCUMENTS grava o evento IN_ANALYSIS e volta a PENDING_DOCUMENTS (pendência ou documento faltando) ou segue para APPROVED ou REJECTED, como no diagrama da RFC. A análise é síncrona, então IN_ANALYSIS aparece só nos eventos, nunca numa consulta. Cliente já APPROVED que envia outro documento (a certidão, o termo de guarda) não muda de status, a não ser que o documento seja recusado.
+24. A guarda passa por IN_ANALYSIS (evento) antes de APPROVED ou REJECTED. A volta de PENDING_DOCUMENTS para IN_ANALYSIS quando a pendência é resolvida não é automática: o responsável pede uma guarda nova.
+25. `GET /customers/{key}/documents` mostra só as pendências abertas, como diz a rota. As resolvidas continuam no banco, com `resolved_at`.
+
+**Inconsistências dentro da própria RFC**
+
+26. O nome da chave da transferência: a tabela de rotas diz `transfer_key`, mas o passo 10 do fluxo "Transferir" e a tabela de testes ("o mesmo transaction_key") dizem `transaction_key`. O código segue a tabela de rotas (`transfer_key`); no extrato, cada item usa `transaction_key`, porque pode ser depósito ou transferência.
+27. Quando nome, CPF e nascimento são copiados: o "Principal desafio" diz "copiados no convite", e as regras de titulares e o fluxo do aceite dizem "no aceite". O código copia no aceite (e na abertura, para o master), porque no convite a pessoa pode ainda não ser cliente.
+28. Travas da transferência: o passo 5 diz "trava os dois saldos", e o passo 9 grava três (origem, destino e receitas). O código trava os três, em ordem de id, porque o saldo de receitas também muda no mesmo commit.
+29. A RFC diz que o `conftest.py` guarda as funções que criam clientes e contas prontas. Elas estão em `tests/utils/` (customer_utils, account_utils, minor_utils), e o `conftest.py` cuida da espera pelos serviços.
+
 **Processo**
 
-22. O ciclo vermelho → verde com um commit por passo foi seguido até o limite por transferência (histórico do `main` até `51da739`). A migração para um banco por serviço, a esteira de documentos e a guarda entraram em commits maiores, com os testes escritos junto do código, e não em commits vermelhos separados.
+30. O ciclo vermelho → verde com um commit por passo foi seguido até o limite por transferência (histórico do `main` até `51da739`). A migração para um banco por serviço, a esteira de documentos e a guarda entraram em commits maiores, com os testes escritos junto do código, e não em commits vermelhos separados.

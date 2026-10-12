@@ -4,6 +4,7 @@
 # - mãe cujo nome não é o nome da mãe na certidão -> 422 QIT002036
 # - avó sem documento de guarda -> 422 QIT002036; com documento -> APPROVED
 # - documento ainda pendente -> guarda PENDING_DOCUMENTS e menor continua esperando
+# - documento de guarda recusado na análise -> guarda REJECTED e convite do menor CANCELED
 # - titular que não é menor -> 422 QIT002034
 # - quem pede não é adulto -> 422 QIT002035
 # - menor já com guarda aprovada -> 409 QIT002037
@@ -13,7 +14,7 @@ import requests
 from utils.account_utils import consultar_conta
 from utils.customer_utils import cadastrar_cliente, enviar_documento, enviar_documento_aprovado, novo_numero_de_documento
 from utils.minor_utils import aprovar_guarda_da_mae, chave_do_titular, conta_com_menor, pedir_guarda
-from utils.mock_utils import mock_document_pending
+from utils.mock_utils import mock_document_pending, mock_document_rejected
 from utils.settings import HEADERS, SERVICES
 
 
@@ -128,3 +129,21 @@ def test_consulta_da_guarda():
     assert resposta.json()["kinship_degree"] == "MOTHER"
     assert estranho.status_code == 404
     assert estranho.json()["code"] == "QIT002038"
+
+
+def test_documento_de_guarda_recusado_recusa_a_guarda_e_cancela_o_convite_do_menor():
+    conta = conta_com_menor(nome_do_master="Maria Avó", outros_adultos=1)
+    numero = novo_numero_de_documento()
+    mock_document_rejected(numero)
+    termo_recusado = enviar_documento(conta["master"], "CUSTODY_ORDER", numero).json()["document_key"]
+
+    resposta = pedir_guarda(conta["account_key"], conta["master"], conta["menor"]["holder_key"], "GRANDPARENT",
+                            [conta["master"]["rg_key"], conta["menor"]["certidao_key"], termo_recusado])
+    de_novo = pedir_guarda(conta["account_key"], conta["master"], conta["menor"]["holder_key"], "MOTHER",
+                           [conta["master"]["rg_key"], conta["menor"]["certidao_key"]])
+
+    assert resposta.status_code == 201
+    assert resposta.json()["status"] == "REJECTED"
+    assert _situacao_do_menor(conta) == ("MINOR", "CANCELED")
+    assert de_novo.status_code == 422
+    assert de_novo.json()["code"] == "QIT002034"

@@ -2,7 +2,7 @@
 # - cadastro válido -> 201 com customer_key, status PENDING_DOCUMENTS
 # - dígitos do CPF errados -> 422 QIT002001
 # - menos de 15 anos -> 422 QIT002002
-# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5)
+# - CPF / e-mail / telefone repetido -> 409 (QIT002003/4/5), sem chamar o birô
 # - birô: CPF inexistente / irregular / divergente -> 422 (QIT002006/7/8)
 # - birô sem resposta -> 502 QIT002009, e nenhum cliente criado
 # - mesma Idempotency-Key -> mesma resposta; com outro corpo -> 422 QIT002047
@@ -13,7 +13,7 @@ from datetime import date
 import requests
 
 from utils.generators import customer_payload
-from utils.mock_utils import mock_bureau, mock_bureau_ok, mock_bureau_unavailable
+from utils.mock_utils import bureau_calls_at_most, mock_bureau, mock_bureau_ok, mock_bureau_unavailable
 from utils.settings import HEADERS, SERVICES
 
 URL = f"{SERVICES['customer-service']}/customers"
@@ -159,3 +159,14 @@ def test_corpo_fora_do_formato_devolve_400_qit000001():
 
     assert resposta.status_code == 400
     assert resposta.json()["code"] == "QIT000001"
+
+
+def test_cpf_repetido_sai_com_409_sem_chamar_o_bureau():
+    payload = customer_payload()
+    mock_bureau_ok(payload)
+    requests.post(URL, json=payload, headers=HEADERS).raise_for_status()
+
+    resposta = requests.post(URL, json=customer_payload(document_number=payload["document_number"]), headers=HEADERS)
+
+    assert resposta.status_code == 409
+    assert bureau_calls_at_most(payload, 1)

@@ -81,3 +81,12 @@ def mock_document_rejected(document_number: str) -> None:
 
 def mock_document_unavailable(document_number: str) -> None:
     mock_document(document_number, delay_seconds=7)
+
+
+def bureau_calls_at_most(payload: dict, times: int) -> bool:
+    """Verify do Mockserver: o birô foi chamado no máximo `times` vezes para este CPF?"""
+    verification = {
+        "httpRequest": {"method": "GET", "path": f"/bureau/cpf/{_digits(payload['document_number'])}"},
+        "times": {"atMost": times},
+    }
+    return requests.put(f"{MOCKSERVER_URL}/mockserver/verify", json=verification).status_code == 202

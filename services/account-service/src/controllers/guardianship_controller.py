@@ -49,6 +49,9 @@ class GuardianshipController(BaseController):
             raise HolderIsNotMinorForGuardianship(data["minor_account_holder_key"])
         if self.guardianship_repository.has_approved_guardianship(minor):
             raise MinorAlreadyHasGuardian(minor.account_holder_key)
+        # Só o menor que aceitou e espera a guarda; o que teve a guarda recusada saiu da conta.
+        if self.account_repository.holder_status(minor) != "PENDING_GUARDIANSHIP":
+            raise HolderIsNotMinorForGuardianship(data["minor_account_holder_key"])
 
         kinship = self.guardianship_repository.get_kinship_degree(data["kinship_degree"])
         if kinship is None:
@@ -69,13 +72,21 @@ class GuardianshipController(BaseController):
                 raise MissingGuardianshipDocument("MINOR_BIRTH_CERTIFICATE com o nome da mãe igual ao da responsável")
 
         guardianship = self.guardianship_repository.create(minor, guardian, kinship)
-        all_approved = all(documents[purpose]["status"] == "APPROVED" for purpose in required)
+        statuses = {purpose: documents[purpose]["status"] for purpose in required}
+        all_approved = all(status == "APPROVED" for status in statuses.values())
         for purpose in required:
             self.guardianship_repository.add_document(guardianship, purpose, documents[purpose]["document_key"],
                                                       confirmed=all_approved)
 
-        if all_approved:
+        rejected = sorted(purpose for purpose, status in statuses.items() if status == "REJECTED")
+        if rejected:
+            self.guardianship_repository.set_status(guardianship, "IN_ANALYSIS", "Documentos enviados para a análise")
+            self._reject(guardianship, minor, guardian, account, rejected)
+        elif all_approved:
+            self.guardianship_repository.set_status(guardianship, "IN_ANALYSIS", "Documentos enviados para a análise")
             self._approve(guardianship, minor, guardian, account, kinship.enumerator)
+        # Senão, algum documento ainda está pendente na esteira: a guarda fica
+        # PENDING_DOCUMENTS e o menor continua sem movimentar.
 
         try:
             self.session.commit()
@@ -104,14 +115,16 @@ class GuardianshipController(BaseController):
         """Cada documento informado vira a finalidade que ele cumpre, se cumprir alguma.
 
         Documento inexistente, de outra pessoa ou do tipo errado simplesmente
-        não conta: no fim, o que faltar vira 422 QIT002036. Documento
-        reprovado também não conta; ainda em análise conta, e deixa a guarda
-        em PENDING_DOCUMENTS.
+        não conta: no fim, o que faltar vira 422 QIT002036. Para cada
+        finalidade vale o melhor documento informado: aprovado, depois ainda
+        em análise (deixa a guarda em PENDING_DOCUMENTS), por último recusado
+        (recusa a guarda).
         """
+        preference = {"APPROVED": 0, "IN_ANALYSIS": 1, "PENDING": 1, "REJECTED": 2}
         documents = {}
         for document_key in document_keys:
             document = self.customer_connector.get_document(document_key)
-            if document is None or document["status"] == "REJECTED":
+            if document is None:
                 continue
 
             owner = document["customer_key"]
@@ -124,7 +137,8 @@ class GuardianshipController(BaseController):
             else:
                 continue
 
-            if purpose not in documents or document["status"] == "APPROVED":
+            current = documents.get(purpose)
+            if current is None or preference[document["status"]] < preference[current["status"]]:
                 documents[purpose] = document
         return documents
 
@@ -139,7 +153,20 @@ class GuardianshipController(BaseController):
             self.account_repository.set_account_status(account, "ACTIVE", guardian.customer_key,
                                                        "Menor ativado pela guarda aprovada")
 
-        decided = {"guardianship_key": guardianship.guardianship_key, "status": "APPROVED"}
+        self._notify_decision(guardianship, minor, guardian, account, "APPROVED")
+
+    def _reject(self, guardianship, minor, guardian, account, rejected_purposes: list) -> None:
+        """A análise recusou um documento exigido: a guarda é recusada e o
+        convite do menor é cancelado, com o motivo no evento."""
+        payload = {"rejected_documents": rejected_purposes}
+        self.guardianship_repository.set_status(guardianship, "REJECTED", "Documento recusado na análise", payload)
+        self.account_repository.set_holder_status(minor, "CANCELED", "Guarda recusada", payload)
+        self.account_repository.cancel_if_no_invite_left(account, guardian.customer_key,
+                                                         "Guarda do único menor recusada")
+        self._notify_decision(guardianship, minor, guardian, account, "REJECTED")
+
+    def _notify_decision(self, guardianship, minor, guardian, account, status: str) -> None:
+        decided = {"guardianship_key": guardianship.guardianship_key, "status": status}
         self.account_repository.notify(guardian.customer_key, account, "GUARDIANSHIP_DECIDED", decided)
         self.account_repository.notify(minor.customer_key, account, "GUARDIANSHIP_DECIDED", decided)
 
